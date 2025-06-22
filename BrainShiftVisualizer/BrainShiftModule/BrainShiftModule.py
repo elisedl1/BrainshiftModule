@@ -103,7 +103,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.transformNode.setMRMLScene(slicer.mrmlScene)
         self.ui.displacementMagnitudeVolume.setMRMLScene(slicer.mrmlScene)
 
-        # set resrictions
         self.ui.referenceVolume.nodeTypes = ["vtkMRMLScalarVolumeNode"]
         self.ui.referenceVolume.addEnabled = False
         self.ui.referenceVolume.removeEnabled = False
@@ -119,23 +118,14 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
         self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
 
-
-
-        # select existing displacement volume
-        # self.ui.existingDisplacementVolumeSelector = slicer.qMRMLScalarVolumeNodeComboBox()
-        # self.ui.existingDisplacementVolumeSelector = slicer.qMRMLCheckableNodeComboBox()
-        # self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        # self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
-        # self.ui.existingDisplacementVolumeSelector.setToolTip("Select an existing displacement magnitude volume to visualize")
-        # self.layout.addWidget(self.ui.existingDisplacementVolumeSelector)
-
-        # # load button for existing
-        # self.ui.loadDisplacementVolumeButton = qt.QPushButton("Load Displacement Volume")
-        # self.ui.loadDisplacementVolumeButton.toolTip = "Visualize the selected existing displacement volume"
-        # self.layout.addWidget(self.ui.loadDisplacementVolumeButton)
-
         # connect
         self.ui.loadDisplacementVolumeButton.connect("clicked(bool)", self.onLoadDisplacementVolume)
+
+        # color selector
+        self.ui.colorMapSelector.setMRMLScene(slicer.mrmlScene)
+        # self.ui.colorMapSelector.setCurrentColorNodeID("vtkMRMLColorTableNodeInferno")  # default
+        self.ui.colorMapSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onColorMapChanged)
+
 
 
         # Create logic class. Logic implements all computations that should be possible to run
@@ -264,6 +254,13 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 # foregroundOpacity=self.ui.opacitySlider.value,
             )
 
+            colorNode = self.ui.colorMapSelector.currentNode()
+            if colorNode and self._parameterNode.displacementMagnitudeVolume:
+                displayNode = self._parameterNode.displacementMagnitudeVolume.GetDisplayNode()
+                if displayNode:
+                    displayNode.SetAndObserveColorNodeID(colorNode.GetID())
+
+
 
     def onLoadDisplacementVolume(self) -> None:
         selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
@@ -280,13 +277,21 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             foreground=selectedVolume,
         )
 
-        # Optional: color map if not set
-        displayNode = selectedVolume.GetDisplayNode()
-        if displayNode and not displayNode.GetColorNodeID():
-            colorNode = slicer.util.getNode("Inferno")
-            if colorNode:
-                displayNode.SetAndObserveColorNodeID(colorNode.GetID())
+        # # Optional: color map if not set
+        # displayNode = selectedVolume.GetDisplayNode()
+        # if displayNode and not displayNode.GetColorNodeID():
+        #     colorNode = slicer.util.getNode("Inferno")
+        #     if colorNode:
+        #         displayNode.SetAndObserveColorNodeID(colorNode.GetID())
 
+    def onColorMapChanged(self, colorNode):
+        """Apply the selected color map to the displacement magnitude volume."""
+        if not colorNode or not self._parameterNode or not self._parameterNode.displacementMagnitudeVolume:
+            return
+
+        displayNode = self._parameterNode.displacementMagnitudeVolume.GetDisplayNode()
+        if displayNode:
+            displayNode.SetAndObserveColorNodeID(colorNode.GetID())
 #
 # BrainShiftModuleLogic
 #
@@ -385,7 +390,6 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
                     transformedPoint = transformToWorld.TransformPoint(ras)
                     displacement = np.array(transformedPoint) - np.array(ras)
                     magnitude = np.linalg.norm(displacement)
-
                     magnitudeImage.SetScalarComponentFromFloat(x, y, z, 0, magnitude)
 
         outputVolume.SetAndObserveImageData(magnitudeImage)
@@ -408,9 +412,15 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         displayNode.AutoWindowLevelOff()
         displayNode.SetWindow(10.0)
         displayNode.SetLevel(5.0)
+
+        displayNode.SetThreshold(0.05, 10.0)
+        displayNode.SetApplyThreshold(True)
+
         colorNode = slicer.util.getNode("Inferno")
         if colorNode:
             displayNode.SetAndObserveColorNodeID(colorNode.GetID())
+
+        
 
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
