@@ -17,7 +17,7 @@ from slicer.parameterNodeWrapper import (
 from slicer import vtkMRMLScalarVolumeNode
 from slicer import vtkMRMLTransformNode
 from slicer import vtkMRMLVectorVolumeNode
-
+import vtk.util.numpy_support
 
 #
 # BrainShiftModule
@@ -116,11 +116,26 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.transformNode.addEnabled = False
         self.ui.transformNode.removeEnabled = False 
 
-        # self.ui.fixedVolume.setMRMLScene(slicer.mrmlScene)
-        # self.ui.fixedVolume.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        # self.ui.fixedVolume.addEnabled = False
-        # self.ui.fixedVolume.removeEnabled = False
+        self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
 
+
+
+        # select existing displacement volume
+        # self.ui.existingDisplacementVolumeSelector = slicer.qMRMLScalarVolumeNodeComboBox()
+        # self.ui.existingDisplacementVolumeSelector = slicer.qMRMLCheckableNodeComboBox()
+        # self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        # self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
+        # self.ui.existingDisplacementVolumeSelector.setToolTip("Select an existing displacement magnitude volume to visualize")
+        # self.layout.addWidget(self.ui.existingDisplacementVolumeSelector)
+
+        # # load button for existing
+        # self.ui.loadDisplacementVolumeButton = qt.QPushButton("Load Displacement Volume")
+        # self.ui.loadDisplacementVolumeButton.toolTip = "Visualize the selected existing displacement volume"
+        # self.layout.addWidget(self.ui.loadDisplacementVolumeButton)
+
+        # connect
+        self.ui.loadDisplacementVolumeButton.connect("clicked(bool)", self.onLoadDisplacementVolume)
 
 
         # Create logic class. Logic implements all computations that should be possible to run
@@ -140,7 +155,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.initializeParameterNode()
 
         # allow for user to adjust opacity
-        self.ui.opacitySlider.connect('valueChanged(double)', self.onOpacityChanged)
+        # self.ui.opacitySlider.connect('valueChanged(double)', self.onOpacityChanged)
 
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
@@ -177,23 +192,23 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.setParameterNode(self.logic.getParameterNode())
 
-        if not self._parameterNode.displacementMagnitudeVolume:
-            # new scalar volume node for displacement magnitude output
-            dispVolNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "DisplacementMagnitude")
-            dispVolNode.CreateDefaultDisplayNodes() # show in slice views by default?
-            # initialize it with same geometry as referenceVolume
-            if self._parameterNode.referenceVolume:
-                dispVolNode.CopyOrientation(self._parameterNode.referenceVolume)
-                dispVolNode.SetOrigin(self._parameterNode.referenceVolume.GetOrigin())
-                dispVolNode.SetSpacing(self._parameterNode.referenceVolume.GetSpacing())
+        # if not self._parameterNode.displacementMagnitudeVolume:
+        #     # new scalar volume node for displacement magnitude output
+        #     dispVolNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "DisplacementMagnitude")
+        #     dispVolNode.CreateDefaultDisplayNodes() # show in slice views by default?
+        #     # initialize it with same geometry as referenceVolume
+        #     if self._parameterNode.referenceVolume:
+        #         dispVolNode.CopyOrientation(self._parameterNode.referenceVolume)
+        #         dispVolNode.SetOrigin(self._parameterNode.referenceVolume.GetOrigin())
+        #         dispVolNode.SetSpacing(self._parameterNode.referenceVolume.GetSpacing())
                 
-                matrix = vtk.vtkMatrix4x4()
-                self._parameterNode.referenceVolume.GetIJKToRASMatrix(matrix)
-                dispVolNode.SetIJKToRASMatrix(matrix)
+        #         matrix = vtk.vtkMatrix4x4()
+        #         self._parameterNode.referenceVolume.GetIJKToRASMatrix(matrix)
+        #         dispVolNode.SetIJKToRASMatrix(matrix)
                 
-                dispVolNode.SetAndObserveImageData(vtk.vtkImageData())
+        #         dispVolNode.SetAndObserveImageData(vtk.vtkImageData())
 
-                self._parameterNode.displacementMagnitudeVolume = dispVolNode 
+        #         self._parameterNode.displacementMagnitudeVolume = dispVolNode 
 
     def setParameterNode(self, inputParameterNode: Optional[BrainShiftModuleParameterNode]) -> None:
         """
@@ -246,24 +261,31 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             slicer.util.setSliceViewerLayers(
                 background=self._parameterNode.referenceVolume,
                 foreground=self._parameterNode.displacementMagnitudeVolume,
-                foregroundOpacity=self.ui.opacitySlider.value,
+                # foregroundOpacity=self.ui.opacitySlider.value,
             )
 
 
-    def onOpacityChanged(self, value: float) -> None:
-        """Adjust foreground opacity dynamically."""
-        if not self._parameterNode:
-            return
+    def onLoadDisplacementVolume(self) -> None:
+        selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         referenceVolume = self._parameterNode.referenceVolume
-        displacementVolume = self._parameterNode.displacementMagnitudeVolume
-        if not referenceVolume or not displacementVolume:
+        if not selectedVolume or not referenceVolume:
+            slicer.util.errorDisplay("Please select both a reference volume and an existing displacement volume.")
             return
+
+        self._parameterNode.displacementMagnitudeVolume = selectedVolume
+
+        # visualize it
         slicer.util.setSliceViewerLayers(
             background=referenceVolume,
-            foreground=displacementVolume,
-            foregroundOpacity=value,
-            fit=False
-        )   
+            foreground=selectedVolume,
+        )
+
+        # Optional: color map if not set
+        displayNode = selectedVolume.GetDisplayNode()
+        if displayNode and not displayNode.GetColorNodeID():
+            colorNode = slicer.util.getNode("Inferno")
+            if colorNode:
+                displayNode.SetAndObserveColorNodeID(colorNode.GetID())
 
 #
 # BrainShiftModuleLogic
