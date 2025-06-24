@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_BrainShiftModule(object):
     def setupUi(self, BrainShiftModule):
         BrainShiftModule.setObjectName("BrainShiftModule")
-        BrainShiftModule.resize(568, 497)
+        BrainShiftModule.resize(452, 495)
         self.verticalLayout = QtWidgets.QVBoxLayout(BrainShiftModule)
         self.verticalLayout.setObjectName("verticalLayout")
         self.outputsCollapsibleButton = ctkCollapsibleButton(BrainShiftModule)

@@ -131,6 +131,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # self.ui.colorMapSelector.setCurrentColorNodeID("vtkMRMLColorTableNodeInferno")  # default
         self.ui.colorMapSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.onColorMapChanged)
 
+        # connect backgroundVolume
+        self.ui.backgroundVolume.setProperty("SlicerParameterName", "backgroundVolume")
+
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -211,12 +214,38 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self._parameterNode
             and self._parameterNode.referenceVolume
             and self._parameterNode.transformNode
+            and self._parameterNode.backgroundVolume
         ):
             self.ui.applyButton.toolTip = _("Compute voxel-wise displacement magnitude")
             self.ui.applyButton.enabled = True
         else:
             self.ui.applyButton.toolTip = _("Select reference volume and transform")
             self.ui.applyButton.enabled = False
+
+    def updateResampledBackgroundDisplay(self) -> None:
+        # existingNode = slicer.util.getNode("ResampledBackgroundCopy")
+        # if existingNode:
+        #     slicer.mrmlScene.RemoveNode(existingNode)
+
+        # create a new scalar volume node as a resampled copy of backgroundVolume
+        resampledBackgroundCopyNode = slicer.mrmlScene.AddNewNodeByClass(
+            "vtkMRMLScalarVolumeNode", "ResampledBackgroundCopy"
+        )
+
+        # resample backgroundVolume into this new node using your logic
+        self.logic.resampleBackgroundtoReference(
+            referenceVolume=self._parameterNode.referenceVolume,
+            outputVolume=resampledBackgroundCopyNode
+        )
+
+        # update the UI selector for background volume 
+        self.ui.backgroundVolume.setCurrentNode(resampledBackgroundCopyNode)
+
+        # set slice viewer layers to show this resampled background with current displacement magnitude volume
+        slicer.util.setSliceViewerLayers(
+            background=resampledBackgroundCopyNode,
+            foreground=self._parameterNode.displacementMagnitudeVolume
+        )
 
     def onApplyButton(self) -> None:
         """Run processing when user clicks 'Apply' button."""
@@ -234,11 +263,18 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 outputVolume=self._parameterNode.displacementMagnitudeVolume
             )
 
-            slicer.util.setSliceViewerLayers(
-                # background=self._parameterNode.referenceVolume,
-                background=self._parameterNode.backgroundVolume,
-                foreground=self._parameterNode.displacementMagnitudeVolume,
-            )
+            # slicer.util.setSliceViewerLayers(
+            #     # background=self._parameterNode.referenceVolume,
+            
+            #     background=self._parameterNode.backgroundVolume,
+            #     foreground=self._parameterNode.displacementMagnitudeVolume
+                
+                
+            # )
+
+
+            self.updateResampledBackgroundDisplay()
+            
 
             colorNode = self.ui.colorMapSelector.currentNode()
             if colorNode and self._parameterNode.displacementMagnitudeVolume:
@@ -252,9 +288,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         # referenceVolume = self._parameterNode.referenceVolume
         backgroundVolume = self._parameterNode.backgroundVolume
-        # if not selectedVolume or not backgroundVolume:
-        #     slicer.util.errorDisplay("Please select both a reference volume and an existing displacement volume.")
-        #     return
+
+        
 
         self._parameterNode.displacementMagnitudeVolume = selectedVolume
 
@@ -263,6 +298,10 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             background=backgroundVolume,
             foreground=selectedVolume
         )
+
+        # self.updateResampledBackgroundDisplay()
+
+        
 
 
     def onColorMapChanged(self, colorNode):
@@ -405,3 +444,42 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
+
+    def resampleBackgroundtoReference(self,
+                                   referenceVolume: vtkMRMLScalarVolumeNode,
+                                   outputVolume: vtkMRMLScalarVolumeNode) -> None:
+        import SimpleITK as sitk
+        import sitkUtils
+
+        if not self.getParameterNode().backgroundVolume:
+            raise ValueError("Background volume is not set.")
+
+        backgroundVolume = self.getParameterNode().backgroundVolume
+
+        # get SimpleITK images 
+        referenceImage = sitkUtils.PullVolumeFromSlicer(referenceVolume)
+        backgroundImage = sitkUtils.PullVolumeFromSlicer(backgroundVolume)
+
+        # resampler
+        resampler = sitk.ResampleImageFilter()
+        resampler.SetReferenceImage(referenceImage)
+        resampler.SetInterpolator(sitk.sitkLinear)
+        resampler.SetTransform(sitk.Transform()) 
+
+        # resampling
+        resampledImage = resampler.Execute(backgroundImage)
+
+        # directly add to slicer
+        sitkUtils.PushVolumeToSlicer(resampledImage, targetNode=outputVolume)
+        # sitkUtils.PushVolumeToSlicer(resampledImage, targetNode=outputVolume, name="ResampledBackground", outputVolumeModified=True)
+
+
+        # copy display parameters (necessary?)
+        if not outputVolume.GetDisplayNode():
+            slicer.modules.volumes.logic().CreateDefaultDisplayNodes(outputVolume)
+        outputVolume.CopyOrientation(referenceVolume)
+        outputVolume.SetSpacing(referenceVolume.GetSpacing())
+        outputVolume.SetOrigin(referenceVolume.GetOrigin())
+        outputVolume.Modified()
+
+        logging.info("Background image resampled to reference volume.")
