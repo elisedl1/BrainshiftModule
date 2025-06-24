@@ -6,13 +6,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>535</width>
-    <height>476</height>
+    <width>568</width>
+    <height>497</height>
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="ctkCollapsibleButton" name="outputsCollapsibleButton">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="text">
       <string>Inputs</string>
      </property>
@@ -20,7 +23,7 @@
       <item row="0" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Reference:</string>
+         <string>Mapping Image:</string>
         </property>
        </widget>
       </item>
@@ -52,13 +55,20 @@
        </widget>
       </item>
       <item row="1" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>Background Image:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>Transformation:</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <widget class="qMRMLNodeComboBox" name="transformNode">
         <property name="nodeTypes">
          <stringlist notr="true"/>
@@ -74,27 +84,14 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="0">
-       <widget class="QPushButton" name="applyButton">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="toolTip">
-         <string>Run the algorithm.</string>
-        </property>
-        <property name="text">
-         <string>Apply</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
+      <item row="4" column="0">
        <widget class="QLabel" name="label_3">
         <property name="text">
          <string>Output Volume:</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <widget class="qMRMLCheckableNodeComboBox" name="displacementMagnitudeVolume">
         <property name="addEnabled">
          <bool>true</bool>
@@ -104,30 +101,56 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
          <string>Load Volume:</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="qMRMLCheckableNodeComboBox" name="existingDisplacementVolumeSelector"/>
       </item>
-      <item row="5" column="0">
+      <item row="7" column="0">
        <widget class="QPushButton" name="loadDisplacementVolumeButton">
         <property name="text">
          <string>Load Volume</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
-       <widget class="qMRMLColorTableComboBox" name="colorMapSelector"/>
-      </item>
-      <item row="6" column="0">
+      <item row="8" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
          <string>Color Map:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
+       <widget class="qMRMLColorTableComboBox" name="colorMapSelector"/>
+      </item>
+      <item row="1" column="1">
+       <widget class="qMRMLNodeComboBox" name="backgroundVolume">
+        <property name="nodeTypes">
+         <stringlist notr="true"/>
+        </property>
+        <property name="hideChildNodeTypes">
+         <stringlist notr="true"/>
+        </property>
+        <property name="interactionNodeSingletonTag">
+         <string notr="true"/>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="0">
+       <widget class="QPushButton" name="applyButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="toolTip">
+         <string>Run the algorithm.</string>
+        </property>
+        <property name="text">
+         <string>Compute Mapping</string>
         </property>
        </widget>
       </item>
