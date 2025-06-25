@@ -135,10 +135,14 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             "vtkMRMLProceduralColorNode",
             "vtkMRMLPETColorNode"
         ]
-        # self.ui.colorMapSelector.currentNodeChanged.connect(self.onColorMapChanged)
 
-        # self.ui.colorMapSelector.setCurrentNodeID("vtkMRMLColorTableNodeInferno")  # optional default
-        # self.ui.colorMapSelector.currentNodeChanged.connect(self.onColorMapChanged)
+        # mouse displayer
+        self.crosshairNode = slicer.util.getNode("Crosshair")
+        self.labelMarkupNode = None
+        self.crosshairObserverTag = None
+
+        self.ui.enableHoverDisplayCheckbox.setChecked(False)  # start disabled
+        self.ui.enableHoverDisplayCheckbox.connect("toggled(bool)", self.onToggleHoverDisplay)
 
 
         # connect backgroundVolume
@@ -302,6 +306,70 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         )
 
 
+    def onMouseMoved(self, observer, eventid):
+        # if markup node doesn't exist do nothing
+        if not self.labelMarkupNode:
+            return
+
+        ras = [0.0, 0.0, 0.0]
+        self.crosshairNode.GetCursorPositionRAS(ras)
+
+        # move label to current RAS position
+        self.labelMarkupNode.SetNthFiducialPositionFromArray(0, ras)
+
+        # sample displacement volume at that RAS location
+        displacementVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
+        if not displacementVolume:
+            self.labelMarkupNode.SetNthFiducialLabel(0, "No volume")
+            return
+
+        # convert RAS to IJK
+        rasToIjk = vtk.vtkMatrix4x4()
+        displacementVolume.GetRASToIJKMatrix(rasToIjk)
+        ijk = [0.0, 0.0, 0.0, 1.0]
+        ras_hom = list(ras) + [1.0]
+        rasToIjk.MultiplyPoint(ras_hom, ijk)
+        ijk = [int(round(i)) for i in ijk[:3]]
+
+        dims = displacementVolume.GetImageData().GetDimensions()
+        if any(i < 0 or i >= d for i, d in zip(ijk, dims)):
+            self.labelMarkupNode.SetNthFiducialLabel(0, "Out of bounds")
+            return
+
+        value = displacementVolume.GetImageData().GetScalarComponentAsDouble(*ijk, 0)
+        label = f"{value:.3f} mm"
+        self.labelMarkupNode.SetNthFiducialLabel(0, label)
+
+
+    def onToggleHoverDisplay(self, enabled: bool) -> None:
+        if enabled:
+            # create markup node
+            if not self.labelMarkupNode:
+                self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "MouseValueLabel")
+                self.labelMarkupNode.AddFiducial(0, 0, 0)
+                self.labelMarkupNode.SetLocked(True)
+                self.labelMarkupNode.SetMarkupLabelFormat("{label}")
+
+
+            # add observer if not already observing
+            if self.crosshairObserverTag is None:
+                self.crosshairObserverTag = self.crosshairNode.AddObserver(
+                    slicer.vtkMRMLCrosshairNode.CursorPositionModifiedEvent,
+                    self.onMouseMoved
+                )
+        else:
+            # remove observer if it exists
+            if self.crosshairObserverTag is not None:
+                self.crosshairNode.RemoveObserver(self.crosshairObserverTag)
+                self.crosshairObserverTag = None
+
+            # remove markup node from scene
+            if self.labelMarkupNode:
+                slicer.mrmlScene.RemoveNode(self.labelMarkupNode)
+                self.labelMarkupNode = None
+
+
+
 # BrainShiftModuleLogic
 #
 
@@ -380,7 +448,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         transformToWorld = vtk.vtkGeneralTransform()
         transformNode.GetTransformToWorld(transformToWorld)
 
-        # Prepare output image
+        # prepare output image
         magnitudeImage = vtk.vtkImageData()
         magnitudeImage.SetDimensions(dims)
         magnitudeImage.AllocateScalars(vtk.VTK_FLOAT, 1)
