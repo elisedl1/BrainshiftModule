@@ -151,9 +151,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # connect threshold slider
         self.ui.thresholdSlider.connect("valuesChanged(double,double)", self.onThresholdSliderChanged)
-
-        # scalarRange = volumeNode.GetImageData().GetScalarRange()
-        # scalarRange[1]
+        # set spin box max and mins
+        self.ui.thresholdMinSpinBox.connect("valueChanged(double)", self.onMinSpinBoxChanged)
+        self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)
 
 
         # Create logic class. Logic implements all computations that should be possible to run
@@ -311,7 +311,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         imageData = selectedVolume.GetImageData()
         if imageData:
             scalarRange = imageData.GetScalarRange()
-            minScalar, maxScalar = scalarRange[0], scalarRange[1]
+            minScalar, maxScalar = 0, scalarRange[1]
 
             # set threshold slider limits based on max and min displacement values
             self.ui.thresholdSlider.setMinimum(minScalar)
@@ -319,6 +319,14 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.thresholdSlider.setMinimumValue(minScalar)
             self.ui.thresholdSlider.setMaximumValue(maxScalar)
             self.ui.thresholdSlider.setValues(minScalar, maxScalar)
+
+            self.ui.thresholdMinSpinBox.setMinimum(minScalar)
+            self.ui.thresholdMinSpinBox.setMaximum(maxScalar)
+            self.ui.thresholdMinSpinBox.setValue(minScalar)
+
+            self.ui.thresholdMaxSpinBox.setMinimum(minScalar)
+            self.ui.thresholdMaxSpinBox.setMaximum(maxScalar)
+            self.ui.thresholdMaxSpinBox.setValue(maxScalar)
 
 
 
@@ -400,6 +408,21 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         displayNode.Modified()
         logging.info(f"Threshold applied: min = {minValue}, max = {maxValue}")
 
+        self.ui.thresholdMinSpinBox.blockSignals(True)
+        self.ui.thresholdMaxSpinBox.blockSignals(True)
+        self.ui.thresholdMinSpinBox.setValue(minValue)
+        self.ui.thresholdMaxSpinBox.setValue(maxValue)
+        self.ui.thresholdMinSpinBox.blockSignals(False)
+        self.ui.thresholdMaxSpinBox.blockSignals(False)
+
+
+    def onMinSpinBoxChanged(self, value):
+        currentMax = self.ui.thresholdMaxSpinBox.value()
+        self.ui.thresholdSlider.setValues(value, currentMax)
+
+    def onMaxSpinBoxChanged(self, value):
+        currentMin = self.ui.thresholdMinSpinBox.value()
+        self.ui.thresholdSlider.setValues(currentMin, value)
 
 
 # BrainShiftModuleLogic

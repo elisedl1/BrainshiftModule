@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>586</width>
+    <width>634</width>
     <height>575</height>
    </rect>
   </property>
@@ -158,10 +158,23 @@
    <item row="14" column="1">
     <widget class="ctkCheckBox" name="enableHoverDisplayCheckbox"/>
    </item>
-   <item row="16" column="1">
+   <item row="19" column="1">
+    <widget class="QDoubleSpinBox" name="thresholdMaxSpinBox"/>
+   </item>
+   <item row="17" column="1">
+    <widget class="QDoubleSpinBox" name="thresholdMinSpinBox">
+     <property name="singleStep">
+      <double>0.500000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="18" column="1">
     <widget class="ctkDoubleRangeSlider" name="thresholdSlider">
      <property name="maximum">
       <double>50.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.500000000000000</double>
      </property>
      <property name="maximumValue">
       <double>10.000000000000000</double>
@@ -171,7 +184,7 @@
      </property>
     </widget>
    </item>
-   <item row="16" column="0">
+   <item row="18" column="0">
     <widget class="QLabel" name="label_8">
      <property name="text">
       <string>Threshold Slider:</string>
