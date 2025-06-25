@@ -11,6 +11,8 @@
    </rect>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+
+  
    <item>
     <widget class="ctkCollapsibleButton" name="outputsCollapsibleButton">
      <property name="enabled">

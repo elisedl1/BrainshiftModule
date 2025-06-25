@@ -18,6 +18,7 @@ from slicer import vtkMRMLScalarVolumeNode
 from slicer import vtkMRMLTransformNode
 from slicer import vtkMRMLVectorVolumeNode
 import vtk.util.numpy_support
+import qt
 
 #
 # BrainShiftModule
@@ -134,6 +135,18 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # connect backgroundVolume
         self.ui.backgroundVolume.setProperty("SlicerParameterName", "backgroundVolume")
 
+        self.sliceObservers = []
+        for sliceViewName in ['Red', 'Yellow', 'Green']:
+            sliceWidget = slicer.app.layoutManager().sliceWidget(sliceViewName)
+            interactor = sliceWidget.sliceView().interactor()
+            tag = interactor.AddObserver(vtk.vtkCommand.MouseMoveEvent, self.onSliceMouseMove)
+            self.sliceObservers.append((interactor, tag))
+
+        self.infoLabel = qt.QLabel()
+        self.infoLabel.setStyleSheet("QLabel { background-color : black; color : white; padding: 2px; }")
+        self.infoLabel.setVisible(False)
+        slicer.util.mainWindow().statusBar().addPermanentWidget(self.infoLabel)
+
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -154,9 +167,13 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # allow for user to adjust opacity
         # self.ui.opacitySlider.connect('valueChanged(double)', self.onOpacityChanged)
 
+
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
         self.removeObservers()
+        for interactor, tag in getattr(self, "sliceObservers", []):
+            interactor.RemoveObserver(tag)
+            self.sliceObservers = []
 
     def enter(self) -> None:
         """Called each time the user opens this module."""
@@ -289,29 +306,11 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         # referenceVolume = self._parameterNode.referenceVolume
-        # backgroundVolume = self._parameterNode.backgroundVolume
-
-        # check if it exists, if it does, don't make a new one
-        resampledNode = slicer.util.getFirstNodeByName("ResampledBackground")
-        if not resampledNode:
-            resampledNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "ResampledBackground")
-            self.logic.resampleBackgroundtoReference(
-                referenceVolume=self._parameterNode.referenceVolume,
-                outputVolume=resampledNode
-        )
-
-
-        self.logic.resampleBackgroundtoReference(
-            referenceVolume=self._parameterNode.referenceVolume,
-            outputVolume=resampledNode
-        )
-
-        self._parameterNode.backgroundVolume = resampledNode
-        self.ui.backgroundVolume.setCurrentNode(resampledNode)
+        backgroundVolume = self._parameterNode.backgroundVolume
 
         # visualize it
         slicer.util.setSliceViewerLayers(
-            background=resampledNode,
+            background=backgroundVolume,
             foreground=selectedVolume
         )
 
@@ -329,28 +328,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode.SetAndObserveColorNodeID(colorNode.GetID())
 
 
-    def updateResampledBackgroundDisplay(self) -> None:
-        resampledNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "ResampledBackground")
-
-        # Run the resampling
-        self.logic.resampleBackgroundtoReference(
-            referenceVolume=self._parameterNode.referenceVolume,
-            outputVolume=resampledNode
-        )
-
-        # Update backgroundVolume in parameter node
-        self._parameterNode.backgroundVolume = resampledNode
-
-        # Set it in the slice viewer
-        slicer.util.setSliceViewerLayers(
-            background=resampledNode,
-            foreground=self._parameterNode.displacementMagnitudeVolume
-        )
-
-        # Optionally: log confirmation
-        logging.info(f"Updated background to resampled node: {resampledNode.GetName()}")
-
-
+    
+   
 # BrainShiftModuleLogic
 #
 
@@ -484,31 +463,33 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
 
     
-    def resampleBackgroundtoReference(self, referenceVolume: vtkMRMLScalarVolumeNode,
-                                    outputVolume: vtkMRMLScalarVolumeNode) -> None:
-        """
-        Resample the background volume to match the reference volume's geometry.
-        The resampled image is written to `outputVolume`.
-        """
-        backgroundVolume = self.getParameterNode().backgroundVolume
-        if not backgroundVolume or not referenceVolume or not outputVolume:
-            raise ValueError("Missing input volume(s)")
+ 
 
-        parameters = {
-            "inputVolume": backgroundVolume.GetID(),
-            "referenceVolume": referenceVolume.GetID(),
-            "outputVolume": outputVolume.GetID(),
-            "interpolationMode": "Linear",
-        }
+    # def resampleBackgroundtoReference(self, referenceVolume: vtkMRMLScalarVolumeNode,
+    #                                 outputVolume: vtkMRMLScalarVolumeNode) -> None:
+    #     """
+    #     Resample the background volume to match the reference volume's geometry.
+    #     The resampled image is written to `outputVolume`.
+    #     """
+    #     backgroundVolume = self.getParameterNode().backgroundVolume
+    #     if not backgroundVolume or not referenceVolume or not outputVolume:
+    #         raise ValueError("Missing input volume(s)")
 
-        slicer.cli.runSync(slicer.modules.resamplescalarvectordwivolume, None, parameters)
+    #     parameters = {
+    #         "inputVolume": backgroundVolume.GetID(),
+    #         "referenceVolume": referenceVolume.GetID(),
+    #         "outputVolume": outputVolume.GetID(),
+    #         "interpolationMode": "Linear",
+    #     }
 
-        # Make sure output volume has proper display node
-        if not outputVolume.GetDisplayNode():
-            slicer.modules.volumes.logic().CreateDefaultDisplayNodes(outputVolume)
+    #     slicer.cli.runSync(slicer.modules.resamplescalarvectordwivolume, None, parameters)
 
-        # Copy geometry info to ensure proper visualization
-        outputVolume.CopyOrientation(referenceVolume)
-        outputVolume.SetSpacing(referenceVolume.GetSpacing())
-        outputVolume.SetOrigin(referenceVolume.GetOrigin())
-        outputVolume.Modified()
+    #     # Make sure output volume has proper display node
+    #     if not outputVolume.GetDisplayNode():
+    #         slicer.modules.volumes.logic().CreateDefaultDisplayNodes(outputVolume)
+
+    #     # Copy geometry info to ensure proper visualization
+    #     outputVolume.CopyOrientation(referenceVolume)
+    #     outputVolume.SetSpacing(referenceVolume.GetSpacing())
+    #     # outputVolume.SetOrigin(referenceVolume.GetOrigin())
+    #     outputVolume.Modified()
