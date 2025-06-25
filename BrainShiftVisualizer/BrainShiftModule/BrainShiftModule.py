@@ -23,6 +23,16 @@ import qt
 #
 # BrainShiftModule
 #
+def setCrosshairColor(colorRGB):
+    layoutManager = slicer.app.layoutManager()
+    sliceViewNames = slicer.util.getSliceViewNames()  # ['Red', 'Yellow', 'Green']
+    
+    for viewName in sliceViewNames:
+        sliceWidget = layoutManager.sliceWidget(viewName)
+        dm = sliceWidget.sliceView().displayableManagerByClassName("vtkMRMLCrosshairDisplayableManager")
+        if dm:
+            # Update color: (R,G,B) in range 0.0-1.0
+            dm.SetCrosshairColor(colorRGB)
 
 
 class BrainShiftModule(ScriptedLoadableModule):
@@ -138,6 +148,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # mouse displayer
         self.crosshairNode = slicer.util.getNode("Crosshair")
+        #self.crosshairNode.SetCrosshairMode(slicer.vtkMRMLCrosshairNode.ShowBasic)
+
         self.labelMarkupNode = None
         self.crosshairObserverTag = None
 
@@ -185,6 +197,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         for interactor, tag in getattr(self, "sliceObservers", []):
             interactor.RemoveObserver(tag)
             self.sliceObservers = []
+    
+
+
 
     def enter(self) -> None:
         """Called each time the user opens this module."""
@@ -216,7 +231,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # so that when the scene is saved and reloaded, these settings are restored.
 
         self.setParameterNode(self.logic.getParameterNode())
-
+    
 
     def setParameterNode(self, inputParameterNode: Optional[BrainShiftModuleParameterNode]) -> None:
         """
@@ -307,7 +322,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             displayNode = selectedVolume.GetDisplayNode()
             displayNode.SetAndObserveColorNodeID(colorNode.GetID())
             displayNode.Modified()
-
+            
         
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
@@ -322,7 +337,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         ras = [0.0, 0.0, 0.0]
         self.crosshairNode.GetCursorPositionRAS(ras)
-
+    
         # move label to current RAS position
         self.labelMarkupNode.SetNthFiducialPositionFromArray(0, ras)
 
@@ -351,6 +366,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onToggleHoverDisplay(self, enabled: bool) -> None:
+
         if enabled:
             # create markup node
             if not self.labelMarkupNode:
@@ -358,7 +374,27 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self.labelMarkupNode.AddFiducial(0, 0, 0)
                 self.labelMarkupNode.SetLocked(True)
                 self.labelMarkupNode.SetMarkupLabelFormat("{label}")
+             
+                displayNode = self.labelMarkupNode.GetDisplayNode()
+                
+                if displayNode:
+                    displayNode.SetColor([0.0, 0.0, 0.0])      #[0.0,0.0,0.0]       # Fiducial marker color
+                    displayNode.SetSelectedColor([0.0, 0.0, 0.0]   ) #[0.0, 0.0, 0.0]    # Color when selected
+                    displayNode.GetTextProperty().SetColor(0.0, 0.0, 0.0)  #0,0,0 # Label **text** color (this is key!)
 
+                # lookupTableNode = slicer.util.getNode("vtkMRMLColorTableNode*") 
+                # colorMapName = lookupTableNode.GetName().lower()
+
+                # # Heuristic: rainbow and warm colors → light background → black text
+                # if "rainbow" in colorMapName or "hot" in colorMapName or "warm" in colorMapName:
+                #     labelColor = [0.0, 0.0, 0.0]
+                # else:
+                #     labelColor = [1.0, 1.0, 1.0]
+                # #displayNode.SetColor(*[labelColor])
+                # #displayNode.GetTextProperty().SetColor(*labelColor)
+                # self.labelMarkupNode.GetDisplayNode().SetColor(*[0.0,0.0,0.0]   )      #[0.0,0.0,0.0]       # Fiducial marker color
+                # self.labelMarkupNode.GetDisplayNode().SetSelectedColor(*[0.0,0.0,0.0]   ) #[0.0, 0.0, 0.0]    # Color when selected
+                # self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0,0.0,0.0)  #0,0,0 # Label **text** color (this is key!)
 
             # add observer if not already observing
             if self.crosshairObserverTag is None:
@@ -498,6 +534,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         displayNode.AutoWindowLevelOff()
         displayNode.SetWindow(10.0)
         displayNode.SetLevel(5.0)
+      
 
         displayNode.SetThreshold(0.05, 10.0)
         displayNode.SetApplyThreshold(True)
