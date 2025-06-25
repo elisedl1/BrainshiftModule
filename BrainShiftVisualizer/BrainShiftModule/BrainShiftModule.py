@@ -135,17 +135,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # connect backgroundVolume
         self.ui.backgroundVolume.setProperty("SlicerParameterName", "backgroundVolume")
 
-        self.sliceObservers = []
-        for sliceViewName in ['Red', 'Yellow', 'Green']:
-            sliceWidget = slicer.app.layoutManager().sliceWidget(sliceViewName)
-            interactor = sliceWidget.sliceView().interactor()
-            tag = interactor.AddObserver(vtk.vtkCommand.MouseMoveEvent, self.onSliceMouseMove)
-            self.sliceObservers.append((interactor, tag))
-
-        self.infoLabel = qt.QLabel()
-        self.infoLabel.setStyleSheet("QLabel { background-color : black; color : white; padding: 2px; }")
-        self.infoLabel.setVisible(False)
-        slicer.util.mainWindow().statusBar().addPermanentWidget(self.infoLabel)
 
 
         # Create logic class. Logic implements all computations that should be possible to run
