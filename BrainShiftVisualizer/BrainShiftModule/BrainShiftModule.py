@@ -285,21 +285,36 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onLoadDisplacementVolume(self) -> None:
+
+
         selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         # referenceVolume = self._parameterNode.referenceVolume
-        backgroundVolume = self._parameterNode.backgroundVolume
+        # backgroundVolume = self._parameterNode.backgroundVolume
 
-        
+        # check if it exists, if it does, don't make a new one
+        resampledNode = slicer.util.getFirstNodeByName("ResampledBackground")
+        if not resampledNode:
+            resampledNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "ResampledBackground")
+            self.logic.resampleBackgroundtoReference(
+                referenceVolume=self._parameterNode.referenceVolume,
+                outputVolume=resampledNode
+        )
 
-        self._parameterNode.displacementMagnitudeVolume = selectedVolume
+
+        self.logic.resampleBackgroundtoReference(
+            referenceVolume=self._parameterNode.referenceVolume,
+            outputVolume=resampledNode
+        )
+
+        self._parameterNode.backgroundVolume = resampledNode
+        self.ui.backgroundVolume.setCurrentNode(resampledNode)
 
         # visualize it
         slicer.util.setSliceViewerLayers(
-            background=backgroundVolume,
+            background=resampledNode,
             foreground=selectedVolume
         )
 
-        # self.updateResampledBackgroundDisplay()
 
         
 
@@ -312,7 +327,30 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         displayNode = self._parameterNode.displacementMagnitudeVolume.GetDisplayNode()
         if displayNode:
             displayNode.SetAndObserveColorNodeID(colorNode.GetID())
-#
+
+
+    def updateResampledBackgroundDisplay(self) -> None:
+        resampledNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLScalarVolumeNode", "ResampledBackground")
+
+        # Run the resampling
+        self.logic.resampleBackgroundtoReference(
+            referenceVolume=self._parameterNode.referenceVolume,
+            outputVolume=resampledNode
+        )
+
+        # Update backgroundVolume in parameter node
+        self._parameterNode.backgroundVolume = resampledNode
+
+        # Set it in the slice viewer
+        slicer.util.setSliceViewerLayers(
+            background=resampledNode,
+            foreground=self._parameterNode.displacementMagnitudeVolume
+        )
+
+        # Optionally: log confirmation
+        logging.info(f"Updated background to resampled node: {resampledNode.GetName()}")
+
+
 # BrainShiftModuleLogic
 #
 
@@ -445,41 +483,32 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
 
-    def resampleBackgroundtoReference(self,
-                                   referenceVolume: vtkMRMLScalarVolumeNode,
-                                   outputVolume: vtkMRMLScalarVolumeNode) -> None:
-        import SimpleITK as sitk
-        import sitkUtils
-
-        if not self.getParameterNode().backgroundVolume:
-            raise ValueError("Background volume is not set.")
-
+    
+    def resampleBackgroundtoReference(self, referenceVolume: vtkMRMLScalarVolumeNode,
+                                    outputVolume: vtkMRMLScalarVolumeNode) -> None:
+        """
+        Resample the background volume to match the reference volume's geometry.
+        The resampled image is written to `outputVolume`.
+        """
         backgroundVolume = self.getParameterNode().backgroundVolume
+        if not backgroundVolume or not referenceVolume or not outputVolume:
+            raise ValueError("Missing input volume(s)")
 
-        # get SimpleITK images 
-        referenceImage = sitkUtils.PullVolumeFromSlicer(referenceVolume)
-        backgroundImage = sitkUtils.PullVolumeFromSlicer(backgroundVolume)
+        parameters = {
+            "inputVolume": backgroundVolume.GetID(),
+            "referenceVolume": referenceVolume.GetID(),
+            "outputVolume": outputVolume.GetID(),
+            "interpolationMode": "Linear",
+        }
 
-        # resampler
-        resampler = sitk.ResampleImageFilter()
-        resampler.SetReferenceImage(referenceImage)
-        resampler.SetInterpolator(sitk.sitkLinear)
-        resampler.SetTransform(sitk.Transform()) 
+        slicer.cli.runSync(slicer.modules.resamplescalarvectordwivolume, None, parameters)
 
-        # resampling
-        resampledImage = resampler.Execute(backgroundImage)
-
-        # directly add to slicer
-        sitkUtils.PushVolumeToSlicer(resampledImage, targetNode=outputVolume)
-        # sitkUtils.PushVolumeToSlicer(resampledImage, targetNode=outputVolume, name="ResampledBackground", outputVolumeModified=True)
-
-
-        # copy display parameters (necessary?)
+        # Make sure output volume has proper display node
         if not outputVolume.GetDisplayNode():
             slicer.modules.volumes.logic().CreateDefaultDisplayNodes(outputVolume)
+
+        # Copy geometry info to ensure proper visualization
         outputVolume.CopyOrientation(referenceVolume)
         outputVolume.SetSpacing(referenceVolume.GetSpacing())
         outputVolume.SetOrigin(referenceVolume.GetOrigin())
         outputVolume.Modified()
-
-        logging.info("Background image resampled to reference volume.")
