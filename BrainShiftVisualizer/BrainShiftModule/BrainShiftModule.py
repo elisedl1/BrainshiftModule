@@ -149,13 +149,18 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.backgroundVolume.setProperty("SlicerParameterName", "backgroundVolume")
 
 
+        # connect threshold slider
+        self.ui.thresholdSlider.connect("valuesChanged(double,double)", self.onThresholdSliderChanged)
+
+        # scalarRange = volumeNode.GetImageData().GetScalarRange()
+        # scalarRange[1]
+
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
         self.logic = BrainShiftModuleLogic()
 
         # Connections
-
         # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
@@ -267,8 +272,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                                 
             )
 
-
-            # self.updateResampledBackgroundDisplay()
             
             # change to color thats selected
             colorNode = self.ui.colorMapSelector.currentNode()
@@ -280,7 +283,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onLoadDisplacementVolume(self) -> None:
-
 
         selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         # referenceVolume = self._parameterNode.referenceVolume
@@ -304,6 +306,20 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             background=backgroundVolume,
             foreground=selectedVolume
         )
+
+        # set max and min of threshold slider
+        imageData = selectedVolume.GetImageData()
+        if imageData:
+            scalarRange = imageData.GetScalarRange()
+            minScalar, maxScalar = scalarRange[0], scalarRange[1]
+
+            # set threshold slider limits based on max and min displacement values
+            self.ui.thresholdSlider.setMinimum(minScalar)
+            self.ui.thresholdSlider.setMaximum(maxScalar)
+            self.ui.thresholdSlider.setMinimumValue(minScalar)
+            self.ui.thresholdSlider.setMaximumValue(maxScalar)
+            self.ui.thresholdSlider.setValues(minScalar, maxScalar)
+
 
 
     def onMouseMoved(self, observer, eventid):
@@ -367,6 +383,22 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if self.labelMarkupNode:
                 slicer.mrmlScene.RemoveNode(self.labelMarkupNode)
                 self.labelMarkupNode = None
+
+    def onThresholdSliderChanged(self, minValue, maxValue):
+
+        volumeNode = self.ui.existingDisplacementVolumeSelector.currentNode()
+        if not volumeNode:
+            logging.warning("No displacement magnitude volume available for thresholding.")
+            return
+        
+        # dynamically set min and max value
+        displayNode = volumeNode.GetDisplayNode()
+
+        displayNode.AutoWindowLevelOff()
+        displayNode.SetThreshold(minValue, maxValue)
+        displayNode.SetApplyThreshold(True)
+        displayNode.Modified()
+        logging.info(f"Threshold applied: min = {minValue}, max = {maxValue}")
 
 
 
@@ -502,6 +534,6 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
 
+
     
- 
 
