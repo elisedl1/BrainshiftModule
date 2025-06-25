@@ -167,7 +167,16 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.initializeParameterNode()
 
         # allow for user to adjust opacity
-        # self.ui.opacitySlider.connect('valueChanged(double)', self.onOpacityChanged)
+        self.ui.opacitySlider.valueChanged.connect(self.onOpacityChanged)
+
+
+
+    def onOpacityChanged(self, value) -> None:
+        normalizedValue = value/100
+        slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
+        # slicer.util.setSliceViewerLayers(
+        #
+        # )
 
 
     def cleanup(self) -> None:
