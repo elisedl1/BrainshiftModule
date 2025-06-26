@@ -151,16 +151,19 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # mouse displayer
         self.crosshairNode = slicer.util.getNode("Crosshair")
-        self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "BrainShiftModule_MouseValueLabel")
-        self.labelMarkupNode.AddControlPoint(0, 0, 0)
-        self.labelMarkupNode.SetLocked(True)
-        self.labelMarkupNode.SetMarkupLabelFormat("{label}")
-        self.labelMarkupNode.GetDisplayNode().SetVisibility2D(False)
-        self.labelMarkupNode.GetDisplayNode().SetVisibility3D(False)
-        self.labelMarkupNode.SetNthControlPointLabel(0, "")
-        self.labelMarkupNode.GetDisplayNode().SetColor([0.0, 0.0, 0.0])  # [0.0,0.0,0.0]       # Fiducial marker color
-        self.labelMarkupNode.GetDisplayNode().SetSelectedColor([0.0, 0.0, 0.0])  # [0.0, 0.0, 0.0]    # Color when selected
-        self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0, 0.0, 0.0)  # 0,0,0 # Label **text** color (this is key!)
+
+        self.labelMarkupNode = slicer.util.getModule("Data").mrmlScene().GetFirstNodeByName("BrainShiftModule_MouseValueLabel")
+        if(  not self.labelMarkupNode ):
+            self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "BrainShiftModule_MouseValueLabel")
+            self.labelMarkupNode.AddControlPoint(0, 0, 0)
+            self.labelMarkupNode.SetLocked(True)
+            self.labelMarkupNode.SetMarkupLabelFormat("{label}")
+            self.labelMarkupNode.GetDisplayNode().SetVisibility2D(False)
+            self.labelMarkupNode.GetDisplayNode().SetVisibility3D(False)
+            self.labelMarkupNode.SetNthControlPointLabel(0, "")
+            self.labelMarkupNode.GetDisplayNode().SetColor([0.0, 0.0, 0.0])  # [0.0,0.0,0.0]       # Fiducial marker color
+            self.labelMarkupNode.GetDisplayNode().SetSelectedColor([0.0, 0.0, 0.0])  # [0.0, 0.0, 0.0]    # Color when selected
+            self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0, 0.0, 0.0)  # 0,0,0 # Label **text** color (this is key!)
 
         self.crosshairObserverTag = None
 
