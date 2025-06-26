@@ -326,7 +326,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         backgroundVolume = self._parameterNode.backgroundVolume
         
         state = self.ui.enableUsBorderDisplay.checkState()
-        self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
+        self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state, reload=True)
         # visualize it
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
@@ -588,7 +588,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
     
-    def showNonZeroWireframe(self, foregroundVolume, state, modelName="NonZeroWireframe"):
+    def showNonZeroWireframe(self, foregroundVolume, state, reload=False, modelName="NonZeroWireframe"):
         """
         Extracts the non-zero region of a volume and displays its surface wireframe
         as a non-destructive 3D overlay using a vtkModelNode.
@@ -602,15 +602,18 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.basicConfig(level=logging.DEBUG)
         logger = logging.getLogger(__name__)
 
-        modelNode = slicer.mrmlScene.GetFirstNodeByName(modelName)
-        if modelNode:
-            displayNode = modelNode.GetDisplayNode()
-            if not state:
-                displayNode.SetVisibility2D(False)
-                return 
+        currentModelNode = slicer.mrmlScene.GetFirstNodeByName(modelName)
+        if currentModelNode:
+            currentDisplayNode = currentModelNode.GetDisplayNode()
+            if not reload:
+                if not state:
+                    currentDisplayNode.SetVisibility2D(False)
+                    return
+                currentDisplayNode.SetVisibility2D(True)
+                return
 
-            displayNode.SetVisibility2D(True)
-            return
+            slicer.mrmlScene.RemoveNode(currentDisplayNode)
+            slicer.mrmlScene.RemoveNode(currentModelNode)
 
         print("Starting showNonZeroWireframe...")
         # Step 1: Convert foreground image to binary mask
@@ -658,9 +661,9 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
         # Step 4: Create and show model node with only edges
         print("Step 4: Preparing model node '%s'...", modelName)
-        modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", modelName)
+        newModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", modelName)
         print("STep 4 done: Created new model node.")
-        modelNode.SetAndObservePolyData(edges.GetOutput())
+        newModelNode.SetAndObservePolyData(edges.GetOutput())
 
         # Match spatial transform
         print("Step 5: Applying spatial transform (IJK to RAS)...")
@@ -672,13 +675,13 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         transformFilter.SetTransform(transform)
         transformFilter.SetInputData(edges.GetOutput())
         transformFilter.Update()
-        modelNode.SetAndObservePolyData(transformFilter.GetOutput())
+        newModelNode.SetAndObservePolyData(transformFilter.GetOutput())
 
         # Step 6: Set wireframe-only display
         print("Step 6: Setting display properties for wireframe...")
         displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
         slicer.mrmlScene.AddNode(displayNode)
-        modelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+        newModelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
         print("Done: Created and linked display node.")
 
         displayNode.SetRepresentation(0)  # Wireframe
@@ -695,4 +698,4 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         slicer.mrmlScene.RemoveNode(labelNode)
         print("Temporary label node removed. Done!")
 
-        return modelNode
+        return newModelNode
