@@ -288,7 +288,7 @@
     </spacer>
    </item>
    <item row="22" column="0">
-    <widget class="QCheckBox" name="us_border_display_checkbox">
+    <widget class="QCheckBox" name="enableUsBorderDisplay">
      <property name="whatsThis">
       <string>Controls the display of ultrasound borders</string>
      </property>

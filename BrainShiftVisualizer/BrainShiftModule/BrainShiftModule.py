@@ -172,6 +172,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.backgroundVolume.setProperty("SlicerParameterName", "backgroundVolume")
 
 
+        # connect US Border display checkbox 
+        self.ui.enableUsBorderDisplay.toggled.connect(self.onToggleUsDisplay)
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -197,6 +199,10 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         normalizedValue = value/100
         slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
 
+    def onToggleUsDisplay(self) -> None:
+        usVolume = self.ui.referenceVolume.currentNode()
+        state = self.ui.enableUsBorderDisplay.checkState()
+        self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
 
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
@@ -315,7 +321,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # referenceVolume = self._parameterNode.referenceVolume
         backgroundVolume = self._parameterNode.backgroundVolume
         
-        self.logic.showNonZeroWireframe(foregroundVolume=usVolume)
+        state = self.ui.enableUsBorderDisplay.checkState()
+        self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
         # visualize it
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
@@ -522,7 +529,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
 
     
-    def showNonZeroWireframe(self, foregroundVolume, modelName="NonZeroWireframe"):
+    def showNonZeroWireframe(self, foregroundVolume, state, modelName="NonZeroWireframe"):
         """
         Extracts the non-zero region of a volume and displays its surface wireframe
         as a non-destructive 3D overlay using a vtkModelNode.
@@ -535,6 +542,16 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         import logging
         logging.basicConfig(level=logging.DEBUG)
         logger = logging.getLogger(__name__)
+
+        modelNode = slicer.mrmlScene.GetFirstNodeByName(modelName)
+        if modelNode:
+            displayNode = modelNode.GetDisplayNode()
+            if not state:
+                displayNode.SetVisibility2D(False)
+                return 
+
+            displayNode.SetVisibility2D(True)
+            return
 
         print("Starting showNonZeroWireframe...")
         # Step 1: Convert foreground image to binary mask
@@ -582,10 +599,8 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
         # Step 4: Create and show model node with only edges
         print("Step 4: Preparing model node '%s'...", modelName)
-        modelNode = slicer.mrmlScene.GetFirstNodeByName(modelName)
-        if not modelNode:
-            modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", modelName)
-            print("STep 4 done: Created new model node.")
+        modelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", modelName)
+        print("STep 4 done: Created new model node.")
         modelNode.SetAndObservePolyData(edges.GetOutput())
 
         # Match spatial transform
@@ -602,21 +617,19 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
         # Step 6: Set wireframe-only display
         print("Step 6: Setting display properties for wireframe...")
-        displayNode = modelNode.GetDisplayNode()
-        if not displayNode:
-            displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
-            slicer.mrmlScene.AddNode(displayNode)
-            modelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
-            print("Done: Created and linked display node.")
+        displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
+        slicer.mrmlScene.AddNode(displayNode)
+        modelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+        print("Done: Created and linked display node.")
 
         displayNode.SetRepresentation(0)  # Wireframe
         displayNode.SetColor(0, 0, 0)     # Green
         displayNode.SetEdgeVisibility(True)
-        displayNode.SetLineWidth(10.0)
+        displayNode.SetLineWidth(5.0)
         displayNode.SetPointSize(3.0)
         displayNode.SetSliceIntersectionThickness(5)
 
-        #displayNode.SetVisibility3D(True)
+        displayNode.SetVisibility3D(False)
         displayNode.SetVisibility2D(True)
 
         # Optional: remove temp label node
