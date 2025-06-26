@@ -193,7 +193,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.opacitySlider.valueChanged.connect(self.onOpacityChanged)
 
 
-
     def onOpacityChanged(self, value) -> None:
         normalizedValue = value/100
         slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
@@ -209,7 +208,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             interactor.RemoveObserver(tag)
             self.sliceObservers = []
     
-
 
 
     def enter(self) -> None:
@@ -294,9 +292,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 outputVolume=self._parameterNode.displacementMagnitudeVolume
             )
 
-
-
-
             slicer.util.setSliceViewerLayers(
                 # background=self._parameterNode.referenceVolume,
             
@@ -304,7 +299,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 foreground=self._parameterNode.displacementMagnitudeVolume
                                 
             )
-
 
             # self.updateResampledBackgroundDisplay()
             
@@ -316,36 +310,29 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     displayNode.SetAndObserveColorNodeID(colorNode.GetID())
 
 
-
     def onLoadDisplacementVolume(self) -> None:
-
 
         #selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         selectedVolume = self.ui.MRMLReplacementVolume.currentNode()
 
         # referenceVolume = self._parameterNode.referenceVolume
         backgroundVolume = self._parameterNode.backgroundVolume
-        
-      
-                # visualize it
+
+        # visualize it
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
             foreground=selectedVolume
         )
-      
-      
-        # change to color thats selected 
+
+        # change to selected color
         colorNode = self.ui.colorMapSelector.currentNode()
         if colorNode:
             displayNode = selectedVolume.GetDisplayNode()
             displayNode.SetAndObserveColorNodeID(colorNode.GetID())
             displayNode.Modified()
-            
-        
-        slicer.util.setSliceViewerLayers(
-            background=backgroundVolume,
-            foreground=selectedVolume
-        )
+
+        normalizedValue = self.ui.opacitySlider.value / 100
+        slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
 
 
     def onMouseMoved(self, observer, eventid):
