@@ -196,9 +196,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onOpacityChanged(self, value) -> None:
         normalizedValue = value/100
         slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
-        # slicer.util.setSliceViewerLayers(
-        #
-        # )
 
 
     def cleanup(self) -> None:
