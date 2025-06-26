@@ -151,9 +151,17 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # mouse displayer
         self.crosshairNode = slicer.util.getNode("Crosshair")
-        #self.crosshairNode.SetCrosshairMode(slicer.vtkMRMLCrosshairNode.ShowBasic)
+        self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "BrainShiftModule_MouseValueLabel")
+        self.labelMarkupNode.AddControlPoint(0, 0, 0)
+        self.labelMarkupNode.SetLocked(True)
+        self.labelMarkupNode.SetMarkupLabelFormat("{label}")
+        self.labelMarkupNode.GetDisplayNode().SetVisibility2D(False)
+        self.labelMarkupNode.GetDisplayNode().SetVisibility3D(False)
+        self.labelMarkupNode.SetNthControlPointLabel(0, "")
+        self.labelMarkupNode.GetDisplayNode().SetColor([0.0, 0.0, 0.0])  # [0.0,0.0,0.0]       # Fiducial marker color
+        self.labelMarkupNode.GetDisplayNode().SetSelectedColor([0.0, 0.0, 0.0])  # [0.0, 0.0, 0.0]    # Color when selected
+        self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0, 0.0, 0.0)  # 0,0,0 # Label **text** color (this is key!)
 
-        self.labelMarkupNode = None
         self.crosshairObserverTag = None
 
         self.ui.enableHoverDisplayCheckbox.setChecked(False)  # start disabled
@@ -342,21 +350,21 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onMouseMoved(self, observer, eventid):
         # if markup node doesn't exist do nothing
-        if not self.labelMarkupNode:
+        if not self.labelMarkupNode.GetDisplayNode().GetVisibility2D():
             return
 
         ras = [0.0, 0.0, 0.0]
         self.crosshairNode.GetCursorPositionRAS(ras)
     
         # move label to current RAS position
-        self.labelMarkupNode.SetNthFiducialPositionFromArray(0, ras)
+        self.labelMarkupNode.SetNthControlPointPosition(0, ras)
 
         # sample displacement volume at that RAS location
         #displacementVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         displacementVolume = self.ui.MRMLReplacementVolume.currentNode()
 
         if not displacementVolume:
-            self.labelMarkupNode.SetNthFiducialLabel(0, "No volume")
+            self.labelMarkupNode.SetNthControlPointLabel(0, "No volume")
             return
 
         # convert RAS to IJK
@@ -369,31 +377,18 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         dims = displacementVolume.GetImageData().GetDimensions()
         if any(i < 0 or i >= d for i, d in zip(ijk, dims)):
-            self.labelMarkupNode.SetNthFiducialLabel(0, "Out of bounds")
+            self.labelMarkupNode.SetNthControlPointLabel(0, "Out of bounds")
             return
 
         value = displacementVolume.GetImageData().GetScalarComponentAsDouble(*ijk, 0)
         label = f"{value:.3f} mm"
-        self.labelMarkupNode.SetNthFiducialLabel(0, label)
+        self.labelMarkupNode.SetNthControlPointLabel(0, label)
 
 
     def onToggleHoverDisplay(self, enabled: bool) -> None:
 
         if enabled:
-            # create markup node
-            if not self.labelMarkupNode:
-                self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "MouseValueLabel")
-                self.labelMarkupNode.AddFiducial(0, 0, 0)
-                self.labelMarkupNode.SetLocked(True)
-                self.labelMarkupNode.SetMarkupLabelFormat("{label}")
-             
-                displayNode = self.labelMarkupNode.GetDisplayNode()
-                
-                if displayNode:
-                    displayNode.SetColor([0.0, 0.0, 0.0])      #[0.0,0.0,0.0]       # Fiducial marker color
-                    displayNode.SetSelectedColor([0.0, 0.0, 0.0]   ) #[0.0, 0.0, 0.0]    # Color when selected
-                    displayNode.GetTextProperty().SetColor(0.0, 0.0, 0.0)  #0,0,0 # Label **text** color (this is key!)
-   
+            self.labelMarkupNode.GetDisplayNode().SetVisibility2D(True)
             # add observer if not already observing
             if self.crosshairObserverTag is None:
                 self.crosshairObserverTag = self.crosshairNode.AddObserver(
@@ -401,17 +396,11 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     self.onMouseMoved
                 )
         else:
+            self.labelMarkupNode.GetDisplayNode().SetVisibility2D(False)
             # remove observer if it exists
             if self.crosshairObserverTag is not None:
                 self.crosshairNode.RemoveObserver(self.crosshairObserverTag)
                 self.crosshairObserverTag = None
-
-            # remove markup node from scene
-            if self.labelMarkupNode:
-                slicer.mrmlScene.RemoveNode(self.labelMarkupNode)
-                self.labelMarkupNode = None
-
-
 
 # BrainShiftModuleLogic
 #
