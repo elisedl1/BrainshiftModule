@@ -45,7 +45,7 @@ class BrainShiftModule(ScriptedLoadableModule):
         self.parent.title = _("BrainShiftModule")
         self.parent.categories = [translate("qSlicerAbstractCoreModule", "Examples")]
         self.parent.dependencies = [] 
-        self.parent.contributors = ["Elise Donszelmann-Lund (McGill)"]  
+        self.parent.contributors = ["Elise Donszelmann-Lund (McGill), Isabel Frolick (McGill), Étienne Léger"]  
         self.parent.helpText = _("""
             Visualize Brain Shift (mm) per voxel
             See more information in <a href="https://github.com/organization/projectname#BrainShiftModule">module documentation</a>.
@@ -131,8 +131,11 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.transformNode.addEnabled = False
         self.ui.transformNode.removeEnabled = False 
 
-        self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
+        #self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        #self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
+
+        self.ui.MRMLReplacementVolume.nodeTypes = ["vtkMRMLScalarVolumeNode"]
+        self.ui.MRMLReplacementVolume.setMRMLScene(slicer.mrmlScene)
 
         # connect
         self.ui.loadDisplacementVolumeButton.connect("clicked(bool)", self.onLoadDisplacementVolume)
@@ -283,6 +286,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 outputVolume=self._parameterNode.displacementMagnitudeVolume
             )
 
+
+
+
             slicer.util.setSliceViewerLayers(
                 # background=self._parameterNode.referenceVolume,
             
@@ -306,16 +312,20 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onLoadDisplacementVolume(self) -> None:
 
 
-        selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
+        #selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
+        selectedVolume = self.ui.MRMLReplacementVolume.currentNode()
+
         # referenceVolume = self._parameterNode.referenceVolume
         backgroundVolume = self._parameterNode.backgroundVolume
-
-        # visualize it
+        
+      
+                # visualize it
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
             foreground=selectedVolume
         )
-
+      
+      
         # change to color thats selected 
         colorNode = self.ui.colorMapSelector.currentNode()
         if colorNode:
@@ -342,7 +352,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.labelMarkupNode.SetNthFiducialPositionFromArray(0, ras)
 
         # sample displacement volume at that RAS location
-        displacementVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
+        #displacementVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
+        displacementVolume = self.ui.MRMLReplacementVolume.currentNode()
+
         if not displacementVolume:
             self.labelMarkupNode.SetNthFiducialLabel(0, "No volume")
             return
@@ -381,21 +393,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     displayNode.SetColor([0.0, 0.0, 0.0])      #[0.0,0.0,0.0]       # Fiducial marker color
                     displayNode.SetSelectedColor([0.0, 0.0, 0.0]   ) #[0.0, 0.0, 0.0]    # Color when selected
                     displayNode.GetTextProperty().SetColor(0.0, 0.0, 0.0)  #0,0,0 # Label **text** color (this is key!)
-
-                # lookupTableNode = slicer.util.getNode("vtkMRMLColorTableNode*") 
-                # colorMapName = lookupTableNode.GetName().lower()
-
-                # # Heuristic: rainbow and warm colors → light background → black text
-                # if "rainbow" in colorMapName or "hot" in colorMapName or "warm" in colorMapName:
-                #     labelColor = [0.0, 0.0, 0.0]
-                # else:
-                #     labelColor = [1.0, 1.0, 1.0]
-                # #displayNode.SetColor(*[labelColor])
-                # #displayNode.GetTextProperty().SetColor(*labelColor)
-                # self.labelMarkupNode.GetDisplayNode().SetColor(*[0.0,0.0,0.0]   )      #[0.0,0.0,0.0]       # Fiducial marker color
-                # self.labelMarkupNode.GetDisplayNode().SetSelectedColor(*[0.0,0.0,0.0]   ) #[0.0, 0.0, 0.0]    # Color when selected
-                # self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0,0.0,0.0)  #0,0,0 # Label **text** color (this is key!)
-
+   
             # add observer if not already observing
             if self.crosshairObserverTag is None:
                 self.crosshairObserverTag = self.crosshairNode.AddObserver(
@@ -445,6 +443,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         unique_values = np.unique(np_array)
         logging.info(f"Number of unique values in displacement magnitude volume: {len(unique_values)}")
         return len(unique_values), unique_values
+
 
 
     def computeDisplacementMagnitude(self,
