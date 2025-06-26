@@ -687,9 +687,8 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         displayNode.SetRepresentation(0)  # Wireframe
         displayNode.SetColor(0, 0, 0)     # Green
         displayNode.SetEdgeVisibility(True)
-        displayNode.SetLineWidth(5.0)
         displayNode.SetPointSize(3.0)
-        displayNode.SetSliceIntersectionThickness(5)
+        displayNode.SetSliceIntersectionThickness(2)
 
         displayNode.SetVisibility3D(False)
         displayNode.SetVisibility2D(True)
