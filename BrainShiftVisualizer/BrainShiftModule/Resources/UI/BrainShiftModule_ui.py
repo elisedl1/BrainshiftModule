@@ -79,7 +79,24 @@ class Ui_BrainShiftModule(object):
         self.formLayout.setWidget(14, QtWidgets.QFormLayout.FieldRole, self.enableHoverDisplayCheckbox)
         self.label_7 = QtWidgets.QLabel(BrainShiftModule)
         self.label_7.setObjectName("label_7")
-        self.formLayout.setWidget(14, QtWidgets.QFormLayout.LabelRole, self.label_7)
+        self.formLayout.setWidget(15, QtWidgets.QFormLayout.LabelRole, self.label_7)
+        self.thresholdMaxSpinBox = QtWidgets.QDoubleSpinBox(BrainShiftModule)
+        self.thresholdMaxSpinBox.setObjectName("thresholdMaxSpinBox")
+        self.formLayout.setWidget(16, QtWidgets.QFormLayout.FieldRole, self.thresholdMaxSpinBox)
+        self.thresholdMinSpinBox = QtWidgets.QDoubleSpinBox(BrainShiftModule)
+        self.thresholdMinSpinBox.setSingleStep(0.5)
+        self.thresholdMinSpinBox.setObjectName("thresholdMinSpinBox")
+        self.formLayout.setWidget(17, QtWidgets.QFormLayout.FieldRole, self.thresholdMinSpinBox)
+        self.thresholdSlider = ctkDoubleRangeSlider(BrainShiftModule)
+        self.thresholdSlider.setMaximum(50.0)
+        self.thresholdSlider.setSingleStep(0.5)
+        self.thresholdSlider.setMaximumValue(10.0)
+        self.thresholdSlider.setOrientation(QtCore.Qt.Horizontal)
+        self.thresholdSlider.setObjectName("thresholdSlider")
+        self.formLayout.setWidget(18, QtWidgets.QFormLayout.FieldRole, self.thresholdSlider)
+        self.label_8 = QtWidgets.QLabel(BrainShiftModule)
+        self.label_8.setObjectName("label_8")
+        self.formLayout.setWidget(19, QtWidgets.QFormLayout.LabelRole, self.label_8)
 
         self.retranslateUi(BrainShiftModule)
         QtCore.QMetaObject.connectSlotsByName(BrainShiftModule)
@@ -99,6 +116,7 @@ class Ui_BrainShiftModule(object):
         self.loadDisplacementVolumeButton.setText(_translate("BrainShiftModule", "Load Volume"))
         self.label_5.setText(_translate("BrainShiftModule", "Color Map:"))
         self.label_7.setText(_translate("BrainShiftModule", "Enable Mouse mm DIsplay"))
+        self.label_8.setText(_translate("BrainShiftModule", "Threshold Slider:"))
 from ctkCheckBox import ctkCheckBox
 from qMRMLCheckableNodeComboBox import qMRMLCheckableNodeComboBox
 from qMRMLColorTableComboBox import qMRMLColorTableComboBox

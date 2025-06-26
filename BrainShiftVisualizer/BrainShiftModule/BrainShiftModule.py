@@ -151,16 +151,19 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # mouse displayer
         self.crosshairNode = slicer.util.getNode("Crosshair")
-        self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "BrainShiftModule_MouseValueLabel")
-        self.labelMarkupNode.AddControlPoint(0, 0, 0)
-        self.labelMarkupNode.SetLocked(True)
-        self.labelMarkupNode.SetMarkupLabelFormat("{label}")
-        self.labelMarkupNode.GetDisplayNode().SetVisibility2D(False)
-        self.labelMarkupNode.GetDisplayNode().SetVisibility3D(False)
-        self.labelMarkupNode.SetNthControlPointLabel(0, "")
-        self.labelMarkupNode.GetDisplayNode().SetColor([0.0, 0.0, 0.0])  # [0.0,0.0,0.0]       # Fiducial marker color
-        self.labelMarkupNode.GetDisplayNode().SetSelectedColor([0.0, 0.0, 0.0])  # [0.0, 0.0, 0.0]    # Color when selected
-        self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0, 0.0, 0.0)  # 0,0,0 # Label **text** color (this is key!)
+
+        self.labelMarkupNode = slicer.util.getModule("Data").mrmlScene().GetFirstNodeByName("BrainShiftModule_MouseValueLabel")
+        if(  not self.labelMarkupNode ):
+            self.labelMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "BrainShiftModule_MouseValueLabel")
+            self.labelMarkupNode.AddControlPoint(0, 0, 0)
+            self.labelMarkupNode.SetLocked(True)
+            self.labelMarkupNode.SetMarkupLabelFormat("{label}")
+            self.labelMarkupNode.GetDisplayNode().SetVisibility2D(False)
+            self.labelMarkupNode.GetDisplayNode().SetVisibility3D(False)
+            self.labelMarkupNode.SetNthControlPointLabel(0, "")
+            self.labelMarkupNode.GetDisplayNode().SetColor([0.0, 0.0, 0.0])  # [0.0,0.0,0.0]       # Fiducial marker color
+            self.labelMarkupNode.GetDisplayNode().SetSelectedColor([0.0, 0.0, 0.0])  # [0.0, 0.0, 0.0]    # Color when selected
+            self.labelMarkupNode.GetDisplayNode().GetTextProperty().SetColor(0.0, 0.0, 0.0)  # 0,0,0 # Label **text** color (this is key!)
 
         self.crosshairObserverTag = None
 
@@ -171,16 +174,19 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # connect backgroundVolume
         self.ui.backgroundVolume.setProperty("SlicerParameterName", "backgroundVolume")
 
-
-        # connect US Border display checkbox 
+        # connect US Border display checkbox
         self.ui.enableUsBorderDisplay.toggled.connect(self.onToggleUsDisplay)
+        # connect threshold slider
+        self.ui.thresholdSlider.connect("valuesChanged(double,double)", self.onThresholdSliderChanged)
+        # set spin box max and mins
+        self.ui.thresholdMinSpinBox.connect("valueChanged(double)", self.onMinSpinBoxChanged)
+        self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
         self.logic = BrainShiftModuleLogic()
 
         # Connections
-
         # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
@@ -301,8 +307,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 foreground=self._parameterNode.displacementMagnitudeVolume
                                 
             )
-
-            # self.updateResampledBackgroundDisplay()
             
             # change to color thats selected
             colorNode = self.ui.colorMapSelector.currentNode()
@@ -338,6 +342,28 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         normalizedValue = self.ui.opacitySlider.value / 100
         slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
+
+        # set max and min of threshold slider
+        imageData = selectedVolume.GetImageData()
+        if imageData:
+            scalarRange = imageData.GetScalarRange()
+            minScalar, maxScalar = 0, scalarRange[1]
+
+            # set threshold slider limits based on max and min displacement values
+            self.ui.thresholdSlider.setMinimum(minScalar)
+            self.ui.thresholdSlider.setMaximum(maxScalar)
+            self.ui.thresholdSlider.setMinimumValue(minScalar)
+            self.ui.thresholdSlider.setMaximumValue(maxScalar)
+            self.ui.thresholdSlider.setValues(minScalar, maxScalar)
+
+            self.ui.thresholdMinSpinBox.setMinimum(minScalar)
+            self.ui.thresholdMinSpinBox.setMaximum(maxScalar)
+            self.ui.thresholdMinSpinBox.setValue(minScalar)
+
+            self.ui.thresholdMaxSpinBox.setMinimum(minScalar)
+            self.ui.thresholdMaxSpinBox.setMaximum(maxScalar)
+            self.ui.thresholdMaxSpinBox.setValue(maxScalar)
+
 
 
     def onMouseMoved(self, observer, eventid):
@@ -393,6 +419,40 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if self.crosshairObserverTag is not None:
                 self.crosshairNode.RemoveObserver(self.crosshairObserverTag)
                 self.crosshairObserverTag = None
+
+
+    def onThresholdSliderChanged(self, minValue, maxValue):
+
+        volumeNode = self.ui.MRMLReplacementVolume.currentNode()
+        if not volumeNode:
+            logging.warning("No displacement magnitude volume available for thresholding.")
+            return
+        
+        # dynamically set min and max value
+        displayNode = volumeNode.GetDisplayNode()
+
+        displayNode.AutoWindowLevelOff()
+        displayNode.SetThreshold(minValue, maxValue)
+        displayNode.SetApplyThreshold(True)
+        displayNode.Modified()
+        logging.info(f"Threshold applied: min = {minValue}, max = {maxValue}")
+
+        self.ui.thresholdMinSpinBox.blockSignals(True)
+        self.ui.thresholdMaxSpinBox.blockSignals(True)
+        self.ui.thresholdMinSpinBox.setValue(minValue)
+        self.ui.thresholdMaxSpinBox.setValue(maxValue)
+        self.ui.thresholdMinSpinBox.blockSignals(False)
+        self.ui.thresholdMaxSpinBox.blockSignals(False)
+
+
+    def onMinSpinBoxChanged(self, value):
+        currentMax = self.ui.thresholdMaxSpinBox.value()
+        self.ui.thresholdSlider.setValues(value, currentMax)
+
+    def onMaxSpinBoxChanged(self, value):
+        currentMin = self.ui.thresholdMinSpinBox.value()
+        self.ui.thresholdSlider.setValues(currentMin, value)
+
 
 # BrainShiftModuleLogic
 #
@@ -527,7 +587,6 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
-
     
     def showNonZeroWireframe(self, foregroundVolume, state, modelName="NonZeroWireframe"):
         """
@@ -637,5 +696,3 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         print("Temporary label node removed. Done!")
 
         return modelNode
-
-

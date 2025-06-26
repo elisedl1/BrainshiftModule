@@ -22,25 +22,25 @@
     </widget>
    </item>
    <item row="1" column="0" colspan="2">
-    <widget class="qMRMLNodeComboBox" name="referenceVolume">
+    <widget class="qMRMLNodeComboBox" name="referenceVolume" native="true">
      <property name="toolTip">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pick the output from the registration (the &lt;span style=&quot; font-weight:600;&quot;&gt;warped&lt;/span&gt; / moving image)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
-     <property name="nodeTypes">
+     <property name="nodeTypes" stdset="0">
       <stringlist notr="true">
        <string>vtkMRMLScalarVolumeNode</string>
       </stringlist>
      </property>
-     <property name="showChildNodeTypes">
+     <property name="showChildNodeTypes" stdset="0">
       <bool>false</bool>
      </property>
-     <property name="noneEnabled">
+     <property name="noneEnabled" stdset="0">
       <bool>true</bool>
      </property>
-     <property name="addEnabled">
+     <property name="addEnabled" stdset="0">
       <bool>true</bool>
      </property>
-     <property name="removeEnabled">
+     <property name="removeEnabled" stdset="0">
       <bool>true</bool>
      </property>
      <property name="SlicerParameterName" stdset="0">
@@ -56,17 +56,17 @@
     </widget>
    </item>
    <item row="3" column="0" colspan="2">
-    <widget class="qMRMLNodeComboBox" name="backgroundVolume">
+    <widget class="qMRMLNodeComboBox" name="backgroundVolume" native="true">
      <property name="toolTip">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Select the fixed image from registration&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
-     <property name="nodeTypes">
+     <property name="nodeTypes" stdset="0">
       <stringlist notr="true"/>
      </property>
-     <property name="hideChildNodeTypes">
+     <property name="hideChildNodeTypes" stdset="0">
       <stringlist notr="true"/>
      </property>
-     <property name="interactionNodeSingletonTag">
+     <property name="interactionNodeSingletonTag" stdset="0">
       <string notr="true"/>
      </property>
     </widget>
@@ -79,14 +79,14 @@
     </widget>
    </item>
    <item row="5" column="0" colspan="2">
-    <widget class="qMRMLNodeComboBox" name="transformNode">
-     <property name="nodeTypes">
+    <widget class="qMRMLNodeComboBox" name="transformNode" native="true">
+     <property name="nodeTypes" stdset="0">
       <stringlist notr="true"/>
      </property>
-     <property name="hideChildNodeTypes">
+     <property name="hideChildNodeTypes" stdset="0">
       <stringlist notr="true"/>
      </property>
-     <property name="interactionNodeSingletonTag">
+     <property name="interactionNodeSingletonTag" stdset="0">
       <string notr="true"/>
      </property>
      <property name="SlicerParameterName" stdset="0">
@@ -102,11 +102,11 @@
     </widget>
    </item>
    <item row="8" column="0" colspan="2">
-    <widget class="qMRMLCheckableNodeComboBox" name="displacementMagnitudeVolume">
-     <property name="addEnabled">
+    <widget class="qMRMLCheckableNodeComboBox" name="displacementMagnitudeVolume" native="true">
+     <property name="addEnabled" stdset="0">
       <bool>true</bool>
      </property>
-     <property name="renameEnabled">
+     <property name="renameEnabled" stdset="0">
       <bool>true</bool>
      </property>
     </widget>
@@ -148,14 +148,14 @@
     </widget>
    </item>
    <item row="13" column="0" colspan="2">
-    <widget class="qMRMLNodeComboBox" name="MRMLReplacementVolume">
-     <property name="nodeTypes">
+    <widget class="qMRMLNodeComboBox" name="MRMLReplacementVolume" native="true">
+     <property name="nodeTypes" stdset="0">
       <stringlist notr="true"/>
      </property>
-     <property name="hideChildNodeTypes">
+     <property name="hideChildNodeTypes" stdset="0">
       <stringlist notr="true"/>
      </property>
-     <property name="interactionNodeSingletonTag">
+     <property name="interactionNodeSingletonTag" stdset="0">
       <string notr="true">Singleton</string>
      </property>
     </widget>
@@ -198,7 +198,7 @@
     </widget>
    </item>
    <item row="19" column="1">
-    <widget class="qMRMLColorTableComboBox" name="colorMapSelector"/>
+    <widget class="qMRMLColorTableComboBox" name="colorMapSelector" native="true"/>
    </item>
    <item row="20" column="0">
     <spacer name="verticalSpacer_4">
@@ -226,7 +226,7 @@
    <item row="21" column="1">
     <widget class="ctkCheckBox" name="enableHoverDisplayCheckbox"/>
    </item>
-   <item row="23" column="0">
+   <item row="22" column="0">
     <spacer name="verticalSpacer_5">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -287,7 +287,7 @@
      </property>
     </spacer>
    </item>
-   <item row="22" column="0">
+   <item row="30" column="0">
     <widget class="QCheckBox" name="enableUsBorderDisplay">
      <property name="whatsThis">
       <string>Controls the display of ultrasound borders</string>
@@ -304,6 +304,36 @@
      <property name="checked">
       <bool>true</bool>
      </property>
+     </widget>
+   </item>
+   <item row="29" column="1">
+    <widget class="QDoubleSpinBox" name="thresholdMaxSpinBox"/>
+   </item>
+   <item row="28" column="1">
+    <widget class="QDoubleSpinBox" name="thresholdMinSpinBox">
+     <property name="singleStep">
+      <double>0.500000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="27" column="1">
+    <widget class="ctkDoubleRangeSlider" name="thresholdSlider" native="true">
+     <property name="maximum" stdset="0">
+      <double>50.000000000000000</double>
+     </property>
+     <property name="singleStep" stdset="0">
+      <double>0.500000000000000</double>
+     </property>
+     <property name="maximumValue" stdset="0">
+      <double>10.000000000000000</double>
+     </property>
+    </widget>
+   </item>
+   <item row="27" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Threshold Slider:</string>
+     </property>
     </widget>
    </item>
   </layout>
@@ -313,6 +343,17 @@
    <class>ctkCheckBox</class>
    <extends>QCheckBox</extends>
    <header>ctkCheckBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLNodeComboBox</class>
+   <extends>QWidget</extends>
+   <header>qMRMLNodeComboBox.h</header>
+  </customwidget>
+  <customwidget>
+   <class>qMRMLWidget</class>
+   <extends>QWidget</extends>
+   <header>qMRMLWidget.h</header>
+   <container>1</container>
   </customwidget>
   <customwidget>
    <class>qMRMLCheckableNodeComboBox</class>
@@ -325,15 +366,9 @@
    <header>qMRMLColorTableComboBox.h</header>
   </customwidget>
   <customwidget>
-   <class>qMRMLNodeComboBox</class>
+   <class>ctkDoubleRangeSlider</class>
    <extends>QWidget</extends>
-   <header>qMRMLNodeComboBox.h</header>
-  </customwidget>
-  <customwidget>
-   <class>qMRMLWidget</class>
-   <extends>QWidget</extends>
-   <header>qMRMLWidget.h</header>
-   <container>1</container>
+   <header>ctkdoublerangeslider.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
