@@ -312,11 +312,12 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         #selectedVolume = self.ui.existingDisplacementVolumeSelector.currentNode()
         selectedVolume = self.ui.MRMLReplacementVolume.currentNode()
+        usVolume = self.ui.referenceVolume.currentNode()
 
         # referenceVolume = self._parameterNode.referenceVolume
         backgroundVolume = self._parameterNode.backgroundVolume
         
-        self.logic.showNonZeroWireframe(foregroundVolume=selectedVolume)
+        self.logic.showNonZeroWireframe(foregroundVolume=usVolume)
         #self.logic.showNonZeroWireframe(foregroundVolume=self._parameterNode.displacementMagnitudeVolume)
                 # visualize it
         slicer.util.setSliceViewerLayers(
