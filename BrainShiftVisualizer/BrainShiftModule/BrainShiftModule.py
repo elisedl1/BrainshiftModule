@@ -288,11 +288,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 transformNode=self._parameterNode.transformNode,
                 outputVolume=self._parameterNode.displacementMagnitudeVolume
             )
-
-<<<<<<< us_border
-
-=======
->>>>>>> main
             slicer.util.setSliceViewerLayers(
                 # background=self._parameterNode.referenceVolume,
             
@@ -319,15 +314,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # referenceVolume = self._parameterNode.referenceVolume
         backgroundVolume = self._parameterNode.backgroundVolume
-<<<<<<< us_border
         
         self.logic.showNonZeroWireframe(foregroundVolume=usVolume)
-        #self.logic.showNonZeroWireframe(foregroundVolume=self._parameterNode.displacementMagnitudeVolume)
-                # visualize it
-=======
-
         # visualize it
->>>>>>> main
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
             foreground=selectedVolume
