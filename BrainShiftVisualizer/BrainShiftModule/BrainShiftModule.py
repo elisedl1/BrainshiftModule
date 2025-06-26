@@ -326,7 +326,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         backgroundVolume = self._parameterNode.backgroundVolume
         
         state = self.ui.enableUsBorderDisplay.checkState()
-        self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
+        self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state, reload=True)
         # visualize it
         slicer.util.setSliceViewerLayers(
             background=backgroundVolume,
@@ -588,7 +588,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
     
-    def showNonZeroWireframe(self, foregroundVolume, state, modelName="NonZeroWireframe"):
+    def showNonZeroWireframe(self, foregroundVolume, state, reload=False, modelName="NonZeroWireframe"):
         """
         Extracts the non-zero region of a volume and displays its surface wireframe
         as a non-destructive 3D overlay using a vtkModelNode.
@@ -603,7 +603,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logger = logging.getLogger(__name__)
 
         modelNode = slicer.mrmlScene.GetFirstNodeByName(modelName)
-        if modelNode:
+        if modelNode and not reload:
             displayNode = modelNode.GetDisplayNode()
             if not state:
                 displayNode.SetVisibility2D(False)
