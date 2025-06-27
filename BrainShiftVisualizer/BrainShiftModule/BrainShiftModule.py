@@ -4,6 +4,8 @@ from typing import Annotated, Optional
 
 import vtk
 
+import ctk 
+
 import slicer
 from slicer.i18n import tr as _
 from slicer.i18n import translate
@@ -114,6 +116,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.transformNode.setMRMLScene(slicer.mrmlScene)
         self.ui.displacementMagnitudeVolume.setMRMLScene(slicer.mrmlScene)
         self.ui.backgroundVolume.setMRMLScene(slicer.mrmlScene)
+        #self.ui.ConvertTagFCSVNode.setMRMLScene(slicer.mrmlScene)
 
         self.ui.backgroundVolume.nodeTypes = ["vtkMRMLScalarVolumeNode"]
         self.ui.backgroundVolume.addEnabled = False 
@@ -131,8 +134,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.transformNode.addEnabled = False
         self.ui.transformNode.removeEnabled = False 
 
-        #self.ui.existingDisplacementVolumeSelector.nodeTypes = ["vtkMRMLScalarVolumeNode"]
-        #self.ui.existingDisplacementVolumeSelector.setMRMLScene(slicer.mrmlScene)
+        #self.ui.ConvertTagFCSVNode.nodeTypes = ["vtkMRMLTransformNode"]
+        self.ui.transformNode.addEnabled = False
+        self.ui.transformNode.removeEnabled = False 
 
         self.ui.MRMLReplacementVolume.nodeTypes = ["vtkMRMLScalarVolumeNode"]
         self.ui.MRMLReplacementVolume.setMRMLScene(slicer.mrmlScene)
@@ -180,7 +184,39 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.thresholdSlider.connect("valuesChanged(double,double)", self.onThresholdSliderChanged)
         # set spin box max and mins
         self.ui.thresholdMinSpinBox.connect("valueChanged(double)", self.onMinSpinBoxChanged)
-        self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)
+        self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)        self.TagFilePathObj = ctk.ctkPathLineEdit()
+        self.TagFilePathObj.filters = ctk.ctkPathLineEdit.Files
+        self.TagFilePathObj.nameFilters = ["Tag files (*.tag)"]
+        self.TagFilePathObj.setToolTip("Select a .tag file to convert")
+        self.layout.addWidget(self.TagFilePathObj)
+
+        # selectedPath = self.TagFilePathObj.currentPath
+        # #formLayout.addRow("Input .tag file:", self.TagFilePathObj)
+        # print("Selected file:", selectedPath)
+
+        # button to create fcsv from tag file
+        self.ConvertTagFCSVButton = qt.QPushButton("Load Tag File")
+        self.ConvertTagFCSVButton.toolTip = "Load a .tag file and create fiducial nodes"
+        self.layout.addWidget(self.ConvertTagFCSVButton)
+        #self.ConvertTagFCSVButton.clicked.connect(self.onConvertTagFCSVButtonClicked)
+        self.ui.ConvertTagFCSVButton.connect("clicked(bool)", self.onConvertTagFCSVButtonClicked)
+
+
+        #Visualize the landmarks as desired (multi-slect)
+        self.LandmarkSelectorComboBox = ctk.ctkCheckableComboBox()
+        self.LandmarkSelectorComboBox.setToolTip("Select fiducial landmark nodes to display")
+        self.layout.addWidget(self.LandmarkSelectorComboBox)
+        
+        # Populate list manually
+        self.updateLandmarkSelectorComboBox()
+
+        # Connect change signal
+        self.LandmarkSelectorComboBox.connect('checkedIndexesChanged()', self.onLandmarkSelectionChanged)
+
+        self.LoadExpertLabelsButton = qt.QPushButton("Load Tag File")
+        self.LoadExpertLabelsButton.toolTip = "Visualize landmarks"
+        self.layout.addWidget(self.LoadExpertLabelsButton)
+        self.ui.LoadExpertLabelsButton.connect('clicked(bool)', self.onLoadExpertLabelsClicked)
 
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
@@ -190,6 +226,14 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # These connections ensure that we update parameter node when scene is closed
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
+       
+    
+        #Add observer to the node event
+        #slicer.mrmlScene.AddObserver(slicer.vtkMRMLScene.NodeAddedEvent, lambda caller, event: self.updateLandmarkSelectorComboBox())
+        #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.updateLandmarkSelectorComboBox() )
+        
+        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onNodeAdded)
+        #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.EndBatchProcessEvent, self.onSceneUpdated)
 
         # Buttons
         self.ui.applyButton.connect("clicked(bool)", self.onApplyButton)
@@ -209,7 +253,52 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         usVolume = self.ui.referenceVolume.currentNode()
         state = self.ui.enableUsBorderDisplay.checkState()
         self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
+    def onConvertTagFCSVButtonClicked(self):
+        filePath = qt.QFileDialog.getOpenFileName(
+            None, "Open Tag File", "", "Tag files (*.tag)"
+        )
+        print("Selected file:", filePath)
+        if filePath:
+            success = self.logic.loadTagFile(filePath)
+            if not success:
+                slicer.util.errorDisplay(f"Failed to load tag file: {filePath}")
+            else:
+                logging.info(f"Loaded tag file: {filePath}")
+        
 
+    def onLoadExpertLabelsClicked(self):
+        '''
+        Select which landmarks to visualize from Data module
+        '''
+        selectedNames = []
+        comboBox = self.ui.LandmarkSelectorComboBox  # or self.LandmarkSelectorComboBox
+
+        for i in range(comboBox.count):
+            index = comboBox.model().index(i, 0)
+            if comboBox.checkState(index) == qt.Qt.Checked:
+                selectedNames.append(comboBox.itemText(i))
+
+                fiducialNode = slicer.util.getNode(comboBox.itemText(i))
+
+                # Ensure it is a fiducial node
+                if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
+                    # Turn on visibility in 3D view
+                    fiducialNode.GetDisplayNode().SetVisibility(True)
+                    fiducialNode.GetDisplayNode().SetVisibility2D(True)
+
+                    fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
+                    fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
+
+                    fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
+                    fiducialNode.GetDisplayNode().SetColor(0.5, 0.0, 0.125)           # Pink when not active
+                    fiducialNode.GetDisplayNode().SetSelectedColor(0.5, 0.0, 0.0)   # Pink when selected
+                    #fiducialNode.GetDisplayNode().SetGlyphType(0)
+                    fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+ 
+                    fiducialNode.GetDisplayNode().SetSelected(True)
+                    fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
+
+    
     def cleanup(self) -> None:
         """Called when the application closes and the module widget is destroyed."""
         self.removeObservers()
@@ -218,7 +307,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.sliceObservers = []
     
 
-
+    def onSceneUpdated(self, caller, event):
+        self.updateLandmarkSelectorComboBox()
     def enter(self) -> None:
         """Called each time the user opens this module."""
         # Make sure parameter node exists and observed
@@ -250,6 +340,60 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.setParameterNode(self.logic.getParameterNode())
     
+  
+    def onNodeAdded(self, caller, event, callData):
+        newNode = callData
+        print("In onNodeAdded")
+        if isinstance(newNode, slicer.vtkMRMLMarkupsFiducialNode):
+            print(f"New fiducial node added: {newNode.GetName()}")
+            self.updateLandmarkSelectorComboBox()
+                
+    def updateLandmarkSelectorComboBox(self):
+        '''
+        Tracks which files to add to the selection box for the available landmarks
+        '''
+        
+        self.LandmarkSelectorComboBox.clear()
+        print("Update... ")
+        fiducialNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
+        print("fiducial Nodes available", len(fiducialNodes))
+
+        for node in fiducialNodes:
+            self.ui.LandmarkSelectorComboBox.addItem(node.GetName())
+
+
+    def onLandmarkSelectionChanged(self):
+        # Get all fiducial nodes
+        allFiducials = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
+
+        # Get selected names from the combo box
+        selectedNames = []
+        for i in range(self.LandmarkSelectorComboBox.count):
+            if self.LandmarkSelectorComboBox.checkState(i) == qt.Qt.Checked:
+                selectedNames.append(self.LandmarkSelectorComboBox.itemText(i))
+
+        # Show only selected ones
+        for node in allFiducials:
+            displayNode = node.GetDisplayNode()
+            if not displayNode:
+                continue
+            if node.GetName() in selectedNames:
+                displayNode.SetUsePointColors(False)         # Use global color, not per-point
+                displayNode.SetVisibility(True)
+                displayNode.SetVisibility2D(True)
+                displayNode.SetTextScale(1.0)
+                
+                displayNode.SetActiveColor([1.0, 0.0, 1.0])   # Pink when active
+                displayNode.SetColor(1.0, 0.0, 1.0)           # Pink when not active
+                displayNode.SetSelectedColor(1.0, 0.0, 1.0)   # Pink when selected
+                displayNode.SetUseSelectedColor(True)       
+                
+                displayNode.SetGlyphScale(5.0)
+                displayNode.SetHandlesInteractive(False)
+            else:
+                displayNode.SetVisibility(False)
+                displayNode.SetVisibility2D(False)
+
 
     def setParameterNode(self, inputParameterNode: Optional[BrainShiftModuleParameterNode]) -> None:
         """
@@ -485,7 +629,83 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.info(f"Number of unique values in displacement magnitude volume: {len(unique_values)}")
         return len(unique_values), unique_values
 
+    def loadTagFile(self, filepath):
+        print(f"Reading tag file: {filepath}")
 
+        points1, points2 = self.read_tag_file(filepath)
+        if points1 is None or points2 is None or len(points1) == 0 or len(points2) == 0:
+            logging.error("No valid points found in tag file.")
+            return False
+
+        # create fiducial nodes in Slicer scene
+        fiducialNode1 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "Source_Landmarks") #the set of landmarks from the first volume registered
+        fiducialNode2 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "Target_Landmarks") #the set of landmarks from the second volume registered
+
+        # add points from tag file to the fiducial nodes
+        for pt in points1:
+            fiducialNode1.AddControlPoint(pt)
+        for pt in points2:
+            fiducialNode2.AddControlPoint(pt)
+
+        displayNode1 = fiducialNode1.GetDisplayNode()
+        if displayNode1:
+            displayNode1.SetVisibility(False)            # Hide in 3D
+            displayNode1.SetVisibility2D(False)          # Hide in 2D slice views
+            displayNode1.SetSelectedColor(0.5, 0.5, 0.5) # Optional: make it less prominent when turned on
+            displayNode1.SetTextScale(5.0)               # Hide label text
+            #displayNode1.SetGlyphTypeFromString("None")  # Hide glyph icon
+            displayNode1.SetHandlesInteractive(False)    # Disable user interaction
+            #displayNode1.SetOpacity(1.0)
+            #displayNode1.SetGlyphScale(5.0)  
+        print("Number of points1:", fiducialNode1.GetNumberOfControlPoints())
+
+        displayNode2 = fiducialNode2.GetDisplayNode()
+        if displayNode2:
+            displayNode2.SetVisibility(False)            # Hide in 3D
+            displayNode2.SetVisibility2D(False)          # Hide in 2D slice views
+            displayNode2.SetSelectedColor(0.5, 0.5, 0.5) # Optional: make it less prominent when turned on
+            displayNode2.SetTextScale(5.0)               # Hide label text
+            displayNode2.SetOpacity(1.0)
+            displayNode2.SetGlyphScale(5.0)  
+            #displayNode2.SetGlyphTypeFromString("None")  # Hide glyph icon
+            displayNode2.SetHandlesInteractive(False)    # Disable user interaction
+        
+       
+        else:
+            slicer.util.errorDisplay("Failed to load landmark file.")
+        qt.QMessageBox.information(slicer.util.mainWindow(), "Success", "Success! \nLandmark files created and available in Data.")
+        print("Number of points2:", fiducialNode1.GetNumberOfControlPoints())
+
+        logging.info("Landmarks loaded and hidden.")
+        
+        logging.info(f"Created {len(points1)} landmarks in each set.")
+        return True
+
+    def read_tag_file(self, filepath):
+        import numpy as np
+        import re
+
+        """Parse the tag file robustly and return two numpy arrays of points."""
+        source_points = []
+        target_points = []
+        try:
+            with open(filepath, 'r') as file:
+                for line in file:
+                    line = line.strip()
+                    if line.startswith('%') or not line:
+                        continue
+                    try:
+                        values = list(map(float, re.findall(r"[-+]?\d*\.\d+|\d+", line)))
+                        if len(values) >= 6:
+                            source_points.append(values[0:3])
+                            target_points.append(values[3:6])
+                    except ValueError:
+                        # skip lines that cannot be parsed into floats
+                        continue
+        except Exception as e:
+            logging.error(f"Failed to read tag file: {e}")
+            return None, None
+        return np.array(source_points), np.array(target_points)
 
     def computeDisplacementMagnitude(self,
                                  referenceVolume: vtkMRMLScalarVolumeNode,
