@@ -524,11 +524,11 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.thresholdSlider.maximum = maxScalar
             self.ui.thresholdSlider.setMinimumValue(minScalar)
             self.ui.thresholdSlider.setMaximumValue(maxScalar)
-            self.ui.thresholdSlider.setValues(0.01, maxScalar)
+            self.ui.thresholdSlider.setValues(0.5, maxScalar)
 
             self.ui.thresholdMinSpinBox.setMinimum(minScalar)
             self.ui.thresholdMinSpinBox.setMaximum(maxScalar)
-            self.ui.thresholdMinSpinBox.setValue(minScalar)
+            self.ui.thresholdMinSpinBox.setValue(0.5)
 
             self.ui.thresholdMaxSpinBox.setMinimum(minScalar)
             self.ui.thresholdMaxSpinBox.setMaximum(maxScalar)
@@ -618,11 +618,11 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onMinSpinBoxChanged(self, value):
-        currentMax = self.ui.thresholdMaxSpinBox.value()
+        currentMax = self.ui.thresholdMaxSpinBox.value
         self.ui.thresholdSlider.setValues(value, currentMax)
 
     def onMaxSpinBoxChanged(self, value):
-        currentMin = self.ui.thresholdMinSpinBox.value()
+        currentMin = self.ui.thresholdMinSpinBox.value
         self.ui.thresholdSlider.setValues(currentMin, value)
 
 
