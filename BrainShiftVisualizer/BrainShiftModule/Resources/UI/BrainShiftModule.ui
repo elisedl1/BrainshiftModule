@@ -393,7 +393,7 @@
    <item row="47" column="1">
     <widget class="QDoubleSpinBox" name="thresholdMinSpinBox">
      <property name="specialValueText">
-      <string>0.01</string>
+      <string>Minimum Threshold</string>
      </property>
      <property name="singleStep">
       <double>0.500000000000000</double>
