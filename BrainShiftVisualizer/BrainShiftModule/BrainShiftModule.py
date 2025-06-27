@@ -515,6 +515,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         imageData = selectedVolume.GetImageData()
         if imageData:
             scalarRange = imageData.GetScalarRange()
+            defaultMinValue = 0.01
             minScalar, maxScalar = 0, scalarRange[1]
 
             # set threshold slider limits based on max and min displacement values
@@ -524,11 +525,11 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.thresholdSlider.maximum = maxScalar
             self.ui.thresholdSlider.setMinimumValue(minScalar)
             self.ui.thresholdSlider.setMaximumValue(maxScalar)
-            self.ui.thresholdSlider.setValues(0.5, maxScalar)
+            self.ui.thresholdSlider.setValues(defaultMinValue, maxScalar)
 
             self.ui.thresholdMinSpinBox.setMinimum(minScalar)
             self.ui.thresholdMinSpinBox.setMaximum(maxScalar)
-            self.ui.thresholdMinSpinBox.setValue(0.5)
+            self.ui.thresholdMinSpinBox.setValue(defaultMinValue)
 
             self.ui.thresholdMaxSpinBox.setMinimum(minScalar)
             self.ui.thresholdMaxSpinBox.setMaximum(maxScalar)
