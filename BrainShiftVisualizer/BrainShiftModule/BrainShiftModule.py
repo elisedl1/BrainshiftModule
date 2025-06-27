@@ -297,25 +297,25 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
                 # Ensure it is a fiducial node
                 if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
-                    if self.ui.enableLandmarkDisplay.checkState():
+                    #if self.ui.enableLandmarkDisplay.checkState():
                         # Turn on visibility in 3D view
-                        fiducialNode.GetDisplayNode().SetVisibility(True)
-                        fiducialNode.GetDisplayNode().SetVisibility2D(True)
+                    fiducialNode.GetDisplayNode().SetVisibility(True)
+                    fiducialNode.GetDisplayNode().SetVisibility2D(True)
 
-                        fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
-                        fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
+                    fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
+                    fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
 
-                        fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
-                        #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
-                        fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
-                        #fiducialNode.GetDisplayNode().SetGlyphType(0)
-                        fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
-    
-                        fiducialNode.GetDisplayNode().SetSelected(True)
-                        fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
-                    else:
-                        fiducialNode.GetDisplayNode().SetVisibility(False)
-                        fiducialNode.GetDisplayNode().SetVisibility2D(False)
+                    fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
+                    #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
+                    fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
+                    #fiducialNode.GetDisplayNode().SetGlyphType(0)
+                    fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+
+                    fiducialNode.GetDisplayNode().SetSelected(True)
+                    fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
+                else:
+                    fiducialNode.GetDisplayNode().SetVisibility(False)
+                    fiducialNode.GetDisplayNode().SetVisibility2D(False)
 
 
     
@@ -398,23 +398,23 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if not displayNode:
                 continue
             if node.GetName() in selectedNames:
-                if self.ui.enableLandmarkDisplay.checkState(): #onToggleLandmarkDisplay
+                #if self.ui.enableLandmarkDisplay.checkState(): #onToggleLandmarkDisplay
 
-                    displayNode.SetUsePointColors(False)         # Use global color, not per-point
-                    displayNode.SetVisibility(True)
-                    displayNode.SetVisibility2D(True)
-                    displayNode.SetTextScale(1.0)
-                    
-                    displayNode.SetActiveColor([1.0, 0.0, 1.0])   # Pink when active
-                    displayNode.SetColor(1.0, 0.0, 1.0)           # Pink when not active
-                    displayNode.SetSelectedColor(1.0, 0.0, 1.0)   # Pink when selected
-                    displayNode.SetUseSelectedColor(True)       
-                    
-                    displayNode.SetGlyphScale(5.0)
-                    displayNode.SetHandlesInteractive(False)
-                else:
-                    displayNode.SetVisibility(False)
-                    displayNode.SetVisibility2D(False)
+                displayNode.SetUsePointColors(False)         # Use global color, not per-point
+                displayNode.SetVisibility(True)
+                displayNode.SetVisibility2D(True)
+                displayNode.SetTextScale(1.0)
+                
+                displayNode.SetActiveColor([1.0, 0.0, 1.0])   # Pink when active
+                displayNode.SetColor(1.0, 0.0, 1.0)           # Pink when not active
+                displayNode.SetSelectedColor(1.0, 0.0, 1.0)   # Pink when selected
+                displayNode.SetUseSelectedColor(True)       
+                
+                displayNode.SetGlyphScale(2.0)
+                displayNode.SetHandlesInteractive(False)
+            else:
+                displayNode.SetVisibility(False)
+                displayNode.SetVisibility2D(False)
 
 
     def setParameterNode(self, inputParameterNode: Optional[BrainShiftModuleParameterNode]) -> None:
