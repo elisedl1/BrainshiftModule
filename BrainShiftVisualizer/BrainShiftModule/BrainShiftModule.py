@@ -261,11 +261,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
 
     def onToggleLandmarkDisplay(self) -> None:
-        #usVolume = self.ui.referenceVolume.currentNode()
-        state = self.ui.enableUsBorderDisplay.checkState()
-    
-        #
-        # self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
+        self.onLandmarkSelectionChanged()
 
 
     def onConvertTagFCSVButtonClicked(self):
@@ -297,8 +293,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
                 # Ensure it is a fiducial node
                 if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
-                    if self.ui.enableLandmarkDisplay.checkState():
-                        # Turn on visibility in 3D view
+                    if self.ui.displayLandmarks.checkState():
+                    # Turn on visibility in 3D view
                         fiducialNode.GetDisplayNode().SetVisibility(True)
                         fiducialNode.GetDisplayNode().SetVisibility2D(True)
 
@@ -310,7 +306,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                         fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
                         #fiducialNode.GetDisplayNode().SetGlyphType(0)
                         fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
-    
+
                         fiducialNode.GetDisplayNode().SetSelected(True)
                         fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
                     else:
@@ -398,8 +394,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if not displayNode:
                 continue
             if node.GetName() in selectedNames:
-                if self.ui.enableLandmarkDisplay.checkState(): #onToggleLandmarkDisplay
-
+                if self.ui.displayLandmarks.checkState(): #onToggleLandmarkDisplay
                     displayNode.SetUsePointColors(False)         # Use global color, not per-point
                     displayNode.SetVisibility(True)
                     displayNode.SetVisibility2D(True)
