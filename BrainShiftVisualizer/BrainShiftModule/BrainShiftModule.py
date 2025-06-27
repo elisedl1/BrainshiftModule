@@ -524,7 +524,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.thresholdSlider.maximum = maxScalar
             self.ui.thresholdSlider.setMinimumValue(minScalar)
             self.ui.thresholdSlider.setMaximumValue(maxScalar)
-            self.ui.thresholdSlider.setValues(minScalar, maxScalar)
+            self.ui.thresholdSlider.setValues(0.01, maxScalar)
 
             self.ui.thresholdMinSpinBox.setMinimum(minScalar)
             self.ui.thresholdMinSpinBox.setMaximum(maxScalar)
