@@ -180,15 +180,20 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # connect US Border display checkbox
         self.ui.enableUsBorderDisplay.toggled.connect(self.onToggleUsDisplay)
+        
+        self.ui.displayLandmarks.toggled.connect(self.onToggleLandmarkDisplay)
+
+        
         # connect threshold slider
         self.ui.thresholdSlider.connect("valuesChanged(double,double)", self.onThresholdSliderChanged)
         # set spin box max and mins
         self.ui.thresholdMinSpinBox.connect("valueChanged(double)", self.onMinSpinBoxChanged)
-        self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)        self.TagFilePathObj = ctk.ctkPathLineEdit()
-        self.TagFilePathObj.filters = ctk.ctkPathLineEdit.Files
-        self.TagFilePathObj.nameFilters = ["Tag files (*.tag)"]
-        self.TagFilePathObj.setToolTip("Select a .tag file to convert")
-        self.layout.addWidget(self.TagFilePathObj)
+        self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)        
+        # self.TagFilePathObj = ctk.ctkPathLineEdit()
+        # self.TagFilePathObj.filters = ctk.ctkPathLineEdit.Files
+        # self.TagFilePathObj.nameFilters = ["Tag files (*.tag)"]
+        # self.TagFilePathObj.setToolTip("Select a .tag file to convert")
+        # #self.layout.addWidget(self.TagFilePathObj)
 
         # selectedPath = self.TagFilePathObj.currentPath
         # #formLayout.addRow("Input .tag file:", self.TagFilePathObj)
@@ -197,7 +202,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # button to create fcsv from tag file
         self.ConvertTagFCSVButton = qt.QPushButton("Load Tag File")
         self.ConvertTagFCSVButton.toolTip = "Load a .tag file and create fiducial nodes"
-        self.layout.addWidget(self.ConvertTagFCSVButton)
+        #self.layout.addWidget(self.ConvertTagFCSVButton)
         #self.ConvertTagFCSVButton.clicked.connect(self.onConvertTagFCSVButtonClicked)
         self.ui.ConvertTagFCSVButton.connect("clicked(bool)", self.onConvertTagFCSVButtonClicked)
 
@@ -205,7 +210,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         #Visualize the landmarks as desired (multi-slect)
         self.LandmarkSelectorComboBox = ctk.ctkCheckableComboBox()
         self.LandmarkSelectorComboBox.setToolTip("Select fiducial landmark nodes to display")
-        self.layout.addWidget(self.LandmarkSelectorComboBox)
+        #self.layout.addWidget(self.LandmarkSelectorComboBox)
         
         # Populate list manually
         self.updateLandmarkSelectorComboBox()
@@ -215,7 +220,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         self.LoadExpertLabelsButton = qt.QPushButton("Load Tag File")
         self.LoadExpertLabelsButton.toolTip = "Visualize landmarks"
-        self.layout.addWidget(self.LoadExpertLabelsButton)
+        #self.layout.addWidget(self.LoadExpertLabelsButton)
         self.ui.LoadExpertLabelsButton.connect('clicked(bool)', self.onLoadExpertLabelsClicked)
 
         # Create logic class. Logic implements all computations that should be possible to run
@@ -251,8 +256,18 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onToggleUsDisplay(self) -> None:
         usVolume = self.ui.referenceVolume.currentNode()
-        state = self.ui.enableUsBorderDisplay.checkState()
+        state = self.ui.enableUsBorderDisplay.checkState() 
+    
         self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
+
+    def onToggleLandmarkDisplay(self) -> None:
+        #usVolume = self.ui.referenceVolume.currentNode()
+        state = self.ui.enableUsBorderDisplay.checkState()
+    
+        #
+        # self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
+
+
     def onConvertTagFCSVButtonClicked(self):
         filePath = qt.QFileDialog.getOpenFileName(
             None, "Open Tag File", "", "Tag files (*.tag)"
@@ -282,21 +297,26 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
                 # Ensure it is a fiducial node
                 if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
-                    # Turn on visibility in 3D view
-                    fiducialNode.GetDisplayNode().SetVisibility(True)
-                    fiducialNode.GetDisplayNode().SetVisibility2D(True)
+                    if self.ui.enableLandmarkDisplay.checkState():
+                        # Turn on visibility in 3D view
+                        fiducialNode.GetDisplayNode().SetVisibility(True)
+                        fiducialNode.GetDisplayNode().SetVisibility2D(True)
 
-                    fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
-                    fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
+                        fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
+                        fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
 
-                    fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
-                    fiducialNode.GetDisplayNode().SetColor(0.5, 0.0, 0.125)           # Pink when not active
-                    fiducialNode.GetDisplayNode().SetSelectedColor(0.5, 0.0, 0.0)   # Pink when selected
-                    #fiducialNode.GetDisplayNode().SetGlyphType(0)
-                    fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
- 
-                    fiducialNode.GetDisplayNode().SetSelected(True)
-                    fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
+                        fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
+                        #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
+                        fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
+                        #fiducialNode.GetDisplayNode().SetGlyphType(0)
+                        fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+    
+                        fiducialNode.GetDisplayNode().SetSelected(True)
+                        fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
+                    else:
+                        fiducialNode.GetDisplayNode().SetVisibility(False)
+                        fiducialNode.GetDisplayNode().SetVisibility2D(False)
+
 
     
     def cleanup(self) -> None:
@@ -378,21 +398,23 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if not displayNode:
                 continue
             if node.GetName() in selectedNames:
-                displayNode.SetUsePointColors(False)         # Use global color, not per-point
-                displayNode.SetVisibility(True)
-                displayNode.SetVisibility2D(True)
-                displayNode.SetTextScale(1.0)
-                
-                displayNode.SetActiveColor([1.0, 0.0, 1.0])   # Pink when active
-                displayNode.SetColor(1.0, 0.0, 1.0)           # Pink when not active
-                displayNode.SetSelectedColor(1.0, 0.0, 1.0)   # Pink when selected
-                displayNode.SetUseSelectedColor(True)       
-                
-                displayNode.SetGlyphScale(5.0)
-                displayNode.SetHandlesInteractive(False)
-            else:
-                displayNode.SetVisibility(False)
-                displayNode.SetVisibility2D(False)
+                if self.ui.enableLandmarkDisplay.checkState(): #onToggleLandmarkDisplay
+
+                    displayNode.SetUsePointColors(False)         # Use global color, not per-point
+                    displayNode.SetVisibility(True)
+                    displayNode.SetVisibility2D(True)
+                    displayNode.SetTextScale(1.0)
+                    
+                    displayNode.SetActiveColor([1.0, 0.0, 1.0])   # Pink when active
+                    displayNode.SetColor(1.0, 0.0, 1.0)           # Pink when not active
+                    displayNode.SetSelectedColor(1.0, 0.0, 1.0)   # Pink when selected
+                    displayNode.SetUseSelectedColor(True)       
+                    
+                    displayNode.SetGlyphScale(5.0)
+                    displayNode.SetHandlesInteractive(False)
+                else:
+                    displayNode.SetVisibility(False)
+                    displayNode.SetVisibility2D(False)
 
 
     def setParameterNode(self, inputParameterNode: Optional[BrainShiftModuleParameterNode]) -> None:
@@ -476,6 +498,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             background=backgroundVolume,
             foreground=selectedVolume
         )
+        
+        self.onLoadExpertLabelsClicked()
 
         # change to selected color
         colorNode = self.ui.colorMapSelector.currentNode()
@@ -494,8 +518,10 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             minScalar, maxScalar = 0, scalarRange[1]
 
             # set threshold slider limits based on max and min displacement values
-            self.ui.thresholdSlider.setMinimum(minScalar)
-            self.ui.thresholdSlider.setMaximum(maxScalar)
+            #self.ui.thresholdSlider.setMinimum(minScalar)
+            #self.ui.thresholdSlider.setMaximum(maxScalar)
+            self.ui.thresholdSlider.minimum = minScalar
+            self.ui.thresholdSlider.maximum = maxScalar
             self.ui.thresholdSlider.setMinimumValue(minScalar)
             self.ui.thresholdSlider.setMaximumValue(maxScalar)
             self.ui.thresholdSlider.setValues(minScalar, maxScalar)
@@ -507,6 +533,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             self.ui.thresholdMaxSpinBox.setMinimum(minScalar)
             self.ui.thresholdMaxSpinBox.setMaximum(maxScalar)
             self.ui.thresholdMaxSpinBox.setValue(maxScalar)
+        
+
 
 
 
