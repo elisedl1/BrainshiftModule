@@ -222,7 +222,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.LoadExpertLabelsButton.toolTip = "Visualize landmarks"
         #self.layout.addWidget(self.LoadExpertLabelsButton)
         self.ui.LoadExpertLabelsButton.connect('clicked(bool)', self.onLoadExpertLabelsClicked)
-
+        #self.ui.LoadExpertLabelsButton.pressed.connect(self.onLoadExpertLabelsClicked)
         # Create logic class. Logic implements all computations that should be possible to run
         # in batch mode, without a graphical user interface.
         self.logic = BrainShiftModuleLogic()
@@ -280,42 +280,147 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             else:
                 logging.info(f"Loaded tag file: {filePath}")
         
-
     def onLoadExpertLabelsClicked(self):
-        '''
-        Select which landmarks to visualize from Data module
-        '''
-        selectedNames = []
-        comboBox = self.ui.LandmarkSelectorComboBox  # or self.LandmarkSelectorComboBox
+        print("IN onLoadExpertLabelsClicked")
 
+        comboBox = self.ui.LandmarkSelectorComboBox
+        model = comboBox.model()
+        #print("comboBox.count", comboBox.count)
         for i in range(comboBox.count):
-            index = comboBox.model().index(i, 0)
-            if comboBox.checkState(index) == qt.Qt.Checked:
-                selectedNames.append(comboBox.itemText(i))
+            #print("i", i)
+            index = model.index(i, 0)
+            itemText = comboBox.itemText(i)
+            try:
+                node = slicer.util.getNode(itemText)
+                displayNode = node.GetDisplayNode()
+                displayNode.SetVisibility(False)
+                displayNode.SetVisibility2D(False)
+            except:
+                print(f"Could not get node for: {itemText}")
+                continue
+            
+            checked = model.data(index, qt.Qt.CheckStateRole) == qt.Qt.Checked
+            displayNode = node.GetDisplayNode()
 
-                fiducialNode = slicer.util.getNode(comboBox.itemText(i))
+            if node.IsA("vtkMRMLMarkupsFiducialNode") and checked:
+                if displayNode:
+                    print("Show Node", node.GetName())
+                    displayNode.SetVisibility(True)
+                    displayNode.SetVisibility2D(True)
+                    displayNode.SetGlyphScale(3.0)
+                    displayNode.SetTextScale(3.0)
+                    displayNode.SetActiveColor([1.0, 0.2, 0.5])
+                    displayNode.SetSelectedColor(0.0, 0.0, 0.0)
+                    displayNode.SetGlyphTypeFromString("Circle2D")
+                    displayNode.SetSelected(checked)
+                    displayNode.SetHandlesInteractive(False)
+            else:
+                print("don't show node", node.GetName())
+                #displayNode = node.GetDisplayNode()
+                displayNode.SetVisibility(False)
+                displayNode.SetVisibility2D(False)
+                displayNode.SetGlyphScale(3.0)
 
-                # Ensure it is a fiducial node
-                if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
-                    #if self.ui.enableLandmarkDisplay.checkState():
-                        # Turn on visibility in 3D view
-                    fiducialNode.GetDisplayNode().SetVisibility(True)
-                    fiducialNode.GetDisplayNode().SetVisibility2D(True)
+    # def onLoadExpertLabelsClicked(self):
+    #     '''
+    #     Select which landmarks to visualize from Data module
+    #     '''
+    #     print("IN onLoadExpertLabelsClicked")
+    #     selectedNames = []
+    #     comboBox = self.LandmarkSelectorComboBox  # or self.LandmarkSelectorComboBox
+    #     print("self.LandmarkSelectorComboBox.count", self.LandmarkSelectorComboBox.count)
+    #     for i in range(self.LandmarkSelectorComboBox.count):
+    #         print("I", i)
+    #         index = self.LandmarkSelectorComboBox.model().index(i, 0)
+    #         item = self.ui.LandmarkSelectorComboBox.itemFromIndex(index)
+    #         node = slicer.util.getNode(item)
+    #         print("in onLoadExpertLabels", node)
+    #         if item.checkState == qt.Qt.Checked:
+    #             item.setCheckState(qt.Qt.Unchecked)
+    #             node = slicer.util.getNode(item)
+    #             if node.IsA("vtkMRMLMarkupsFiducialNode"):
+    #                 node.GetDisplayNode().SetVisibility(False)
+    #                 node.GetDisplayNode().SetVisibility2D(False)
+    #             else:
+    #                 item.setCheckState(qt.Qt.Checked)
+    #                 if node.IsA("vtkMRMLMarkupsFiducialNode"):
 
-                    fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
-                    fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
+    #                     node.GetDisplayNode().SetVisibility(True)
+    #                     node.GetDisplayNode().SetVisibility2D(True)
 
-                    fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
-                    #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
-                    fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
-                    #fiducialNode.GetDisplayNode().SetGlyphType(0)
-                    fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+    #                     node.GetDisplayNode().SetGlyphScale(3.0) #Marker
+    #                     node.GetDisplayNode().SetTextScale(3.0) #Label
 
-                    fiducialNode.GetDisplayNode().SetSelected(True)
-                    fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
-                else:
-                    fiducialNode.GetDisplayNode().SetVisibility(False)
-                    fiducialNode.GetDisplayNode().SetVisibility2D(False)
+    #                     node.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
+    #                     #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
+    #                     node.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
+    #                     #fiducialNode.GetDisplayNode().SetGlyphType(0)
+    #                     node.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+
+    #                     node.GetDisplayNode().SetSelected(True)
+    #                     node.GetDisplayNode().SetHandlesInteractive(False)
+    #         self.check_items()
+
+    def check_items(self):
+        checkedItems = []
+
+        for i in range(self.ui.LandmarkSelectorComboBox.count()):
+            if self.item_checked(i):
+                checkedItems.append(i)
+        self.update_landmark_visualize(checkedItems)
+
+    def update_landmark_visualize(self, checkedItems):
+        print("In update")
+        # fiducialNode = slicer.util.getNode(checkedItems)
+
+        # fiducialNode.GetDisplayNode().SetVisibility(True)
+        # fiducialNode.GetDisplayNode().SetVisibility2D(True)
+
+        # fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
+        # fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
+
+        # fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
+        # #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
+        # fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
+        # #fiducialNode.GetDisplayNode().SetGlyphType(0)
+        # fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+
+        # fiducialNode.GetDisplayNode().SetSelected(True)
+        # fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
+        
+        # fiducialNode.GetDisplayNode().SetVisibility(False)
+        # fiducialNode.GetDisplayNode().SetVisibility2D(False)
+    
+
+
+        # for i in range(comboBox.count):
+        # index = comboBox.model().index(i, 0)
+        # if comboBox.checkState(index) == qt.Qt.Checked:
+        #     selectedNames.append(comboBox.itemText(i))
+
+        #         fiducialNode = slicer.util.getNode(comboBox.itemText(i))
+
+        #         # Ensure it is a fiducial node
+        #         if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
+        #             #if self.ui.enableLandmarkDisplay.checkState():
+        #                 # Turn on visibility in 3D view
+        #             fiducialNode.GetDisplayNode().SetVisibility(True)
+        #             fiducialNode.GetDisplayNode().SetVisibility2D(True)
+
+        #             fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
+        #             fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
+
+        #             fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
+        #             #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
+        #             fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
+        #             #fiducialNode.GetDisplayNode().SetGlyphType(0)
+        #             fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
+
+        #             fiducialNode.GetDisplayNode().SetSelected(True)
+        #             fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
+        #         else:
+        #             fiducialNode.GetDisplayNode().SetVisibility(False)
+        #             fiducialNode.GetDisplayNode().SetVisibility2D(False)
 
 
     
