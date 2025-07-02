@@ -153,6 +153,14 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             "vtkMRMLPETColorNode"
         ]
 
+        #For changing names of landmarks
+        self.line_edit = qt.QLineEdit(self)
+        self.layout.addWidget(self.line_edit)
+
+        self.line_edit.setText("Initial Text")
+
+
+
         # mouse displayer
         self.crosshairNode = slicer.util.getNode("Crosshair")
 
@@ -272,9 +280,10 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         filePath = qt.QFileDialog.getOpenFileName(
             None, "Open Tag File", "", "Tag files (*.tag)"
         )
-        print("Selected file:", filePath)
+        text1, text2 = self.getLandmarkLabel()
+        print("Selected file:", filePath, text1, text2)
         if filePath:
-            success = self.logic.loadTagFile(filePath)
+            success = self.logic.loadTagFile(filePath, text1, text2)
             if not success:
                 slicer.util.errorDisplay(f"Failed to load tag file: {filePath}")
             else:
@@ -699,6 +708,27 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 self.crosshairObserverTag = None
 
 
+    def getLandmarkLabel(self):
+        default_text = "Initial Text"
+    
+        text1 = qt.QInputDialog.getText(self.line_edit, "Please name the first landmark file (derived from the source volume)", "Name: ")
+        text2 = qt.QInputDialog.getText(self.line_edit, "Please name the second landmark file (derived from the moving volume)", "Name: ")
+
+        #print(f"User input: '{text}', OK pressed: ")
+
+        #print(type(ok))
+        if text1:
+            self.line_edit.setText(text1)
+        if text2:
+            self.line_edit.setText(text2)
+
+        else:
+            raise Exception("could not rename landmark file")
+        print("Renamed to: ", text1)
+        return text1, text2
+
+
+
     def onThresholdSliderChanged(self, minValue, maxValue):
 
         volumeNode = self.ui.MRMLReplacementVolume.currentNode()
@@ -763,17 +793,19 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         logging.info(f"Number of unique values in displacement magnitude volume: {len(unique_values)}")
         return len(unique_values), unique_values
 
-    def loadTagFile(self, filepath):
-        print(f"Reading tag file: {filepath}")
 
+    def loadTagFile(self, filepath, text1, text2):
+        print(f"Reading tag file: {filepath}")
+        print("Label: ", text2)
         points1, points2 = self.read_tag_file(filepath)
         if points1 is None or points2 is None or len(points1) == 0 or len(points2) == 0:
             logging.error("No valid points found in tag file.")
             return False
+        
 
         # create fiducial nodes in Slicer scene
-        fiducialNode1 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "Source_Landmarks") #the set of landmarks from the first volume registered
-        fiducialNode2 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "Target_Landmarks") #the set of landmarks from the second volume registered
+        fiducialNode1 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", f"{text1}") #the set of landmarks from the first volume registered
+        fiducialNode2 = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", f"{text2}") #the set of landmarks from the second volume registered
 
         # add points from tag file to the fiducial nodes
         for pt in points1:
@@ -804,7 +836,6 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
             #displayNode2.SetGlyphTypeFromString("None")  # Hide glyph icon
             displayNode2.SetHandlesInteractive(False)    # Disable user interaction
         
-       
         else:
             slicer.util.errorDisplay("Failed to load landmark file.")
         qt.QMessageBox.information(slicer.util.mainWindow(), "Success", "Success! \nLandmark files created and available in Data.")
