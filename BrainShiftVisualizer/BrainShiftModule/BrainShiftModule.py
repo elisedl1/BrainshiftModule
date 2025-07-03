@@ -223,7 +223,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Populate list manually
         self.updateLandmarkSelectorComboBox()
 
-        # Connect change signal
+        # Check which landmarks to display
         self.LandmarkSelectorComboBox.connect('checkedIndexesChanged()', self.onLandmarkSelectionChanged)
 
         self.LoadExpertLabelsButton = qt.QPushButton("Load Tag File")
@@ -241,11 +241,10 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
        
     
-        #Add observer to the node event
-        #slicer.mrmlScene.AddObserver(slicer.vtkMRMLScene.NodeAddedEvent, lambda caller, event: self.updateLandmarkSelectorComboBox())
-        #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.updateLandmarkSelectorComboBox() )
-        
-        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onNodeAdded)
+        #Add observer to the node event to track landmark files available
+        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onNodeChanged)
+        self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeRemovedEvent, self.onNodeChanged)
+
         #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.EndBatchProcessEvent, self.onSceneUpdated)
 
         # Buttons
@@ -475,21 +474,24 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
     
   
-    def onNodeAdded(self, caller, event, callData):
-        newNode = callData
+    def onNodeChanged(self, caller, event) -> None:
+        #newNode = callData
         print("In onNodeAdded")
-        if isinstance(newNode, slicer.vtkMRMLMarkupsFiducialNode):
-            print(f"New fiducial node added: {newNode.GetName()}")
-            self.updateLandmarkSelectorComboBox()
+        #if isinstance(newNode, slicer.vtkMRMLMarkupsFiducialNode):
+            #print(f"New fiducial node added: {newNode.GetName()}")
+        self.updateLandmarkSelectorComboBox()
                 
     def updateLandmarkSelectorComboBox(self):
         '''
         Tracks which files to add to the selection box for the available landmarks
         '''
-        
-        self.LandmarkSelectorComboBox.clear()
+        self.ui.LandmarkSelectorComboBox.clear()
+
+        print("Landmark Selector Count", self.LandmarkSelectorComboBox.count)
+
         print("Update... ")
         fiducialNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
+        print(f"fiducial Nodes", fiducialNodes)
         print("fiducial Nodes available", len(fiducialNodes))
 
         for node in fiducialNodes:
@@ -513,7 +515,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 continue
             if node.GetName() in selectedNames:
                 #if self.ui.enableLandmarkDisplay.checkState(): #onToggleLandmarkDisplay
-
                 displayNode.SetUsePointColors(False)         # Use global color, not per-point
                 displayNode.SetVisibility(True)
                 displayNode.SetVisibility2D(True)
@@ -527,6 +528,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 displayNode.SetGlyphScale(2.0)
                 displayNode.SetHandlesInteractive(False)
             else:
+
                 displayNode.SetVisibility(False)
                 displayNode.SetVisibility2D(False)
 
