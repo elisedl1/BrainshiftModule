@@ -197,15 +197,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # set spin box max and mins
         self.ui.thresholdMinSpinBox.connect("valueChanged(double)", self.onMinSpinBoxChanged)
         self.ui.thresholdMaxSpinBox.connect("valueChanged(double)", self.onMaxSpinBoxChanged)        
-        # self.TagFilePathObj = ctk.ctkPathLineEdit()
-        # self.TagFilePathObj.filters = ctk.ctkPathLineEdit.Files
-        # self.TagFilePathObj.nameFilters = ["Tag files (*.tag)"]
-        # self.TagFilePathObj.setToolTip("Select a .tag file to convert")
-        # #self.layout.addWidget(self.TagFilePathObj)
-
-        # selectedPath = self.TagFilePathObj.currentPath
-        # #formLayout.addRow("Input .tag file:", self.TagFilePathObj)
-        # print("Selected file:", selectedPath)
+      
 
         # button to create fcsv from tag file
         self.ConvertTagFCSVButton = qt.QPushButton("Load Tag File")
@@ -287,7 +279,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 slicer.util.errorDisplay(f"Failed to load tag file: {filePath}")
             else:
                 logging.info(f"Loaded tag file: {filePath}")
-        
+    
+    #IJZF
     def onLoadExpertLabelsClicked(self):
         print("IN onLoadExpertLabelsClicked")
 
@@ -480,7 +473,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         #if isinstance(newNode, slicer.vtkMRMLMarkupsFiducialNode):
             #print(f"New fiducial node added: {newNode.GetName()}")
         self.updateLandmarkSelectorComboBox()
-                
+    
+    #IJZF
     def updateLandmarkSelectorComboBox(self):
         '''
         Tracks which files to add to the selection box for the available landmarks
@@ -491,25 +485,33 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         print("Update... ")
         fiducialNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
+        
         print(f"fiducial Nodes", fiducialNodes)
         print("fiducial Nodes available", len(fiducialNodes))
 
         for node in fiducialNodes:
+            if node == self.labelMarkupNode:  # or whatever your variable name is
+                continue
             self.ui.LandmarkSelectorComboBox.addItem(node.GetName())
 
 
     def onLandmarkSelectionChanged(self):
         # Get all fiducial nodes
-        allFiducials = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
-
+        #allFiducials = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
+        fcsvFiducials = [
+            node for node in slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
+            if node.GetStorageNode() and node.GetStorageNode().GetFileName().endswith('.fcsv')
+        ]
+        
         # Get selected names from the combo box
         selectedNames = []
         for i in range(self.LandmarkSelectorComboBox.count):
-            if self.LandmarkSelectorComboBox.checkState(i) == qt.Qt.Checked:
+            if self.LandmarkSelectorComboBox.checkState(i) == qt.Qt.Checked :
                 selectedNames.append(self.LandmarkSelectorComboBox.itemText(i))
 
         # Show only selected ones
-        for node in allFiducials:
+        for node in fcsvFiducials:
+            print("Gte nMae:",node.GetName())
             displayNode = node.GetDisplayNode()
             if not displayNode:
                 continue
@@ -693,8 +695,9 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def onToggleHoverDisplay(self, enabled: bool) -> None:
-
+        print("on Toggle Hover Display")
         if enabled:
+            print("enabled")
             self.labelMarkupNode.GetDisplayNode().SetVisibility2D(True)
             # add observer if not already observing
             if self.crosshairObserverTag is None:
