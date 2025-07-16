@@ -156,9 +156,8 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         #For changing names of landmarks
         self.line_edit = qt.QLineEdit(self)
         self.layout.addWidget(self.line_edit)
-
-        self.line_edit.setText("Initial Text")
-
+        #self.line_edit.setWindowFlags(qt.Popup)
+        # self.line_edit.setText("Initial Text")
 
 
         # mouse displayer
@@ -189,7 +188,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # connect US Border display checkbox
         self.ui.enableUsBorderDisplay.toggled.connect(self.onToggleUsDisplay)
         
-        self.ui.displayLandmarks.toggled.connect(self.onToggleLandmarkDisplay)
 
         
         # connect threshold slider
@@ -202,15 +200,13 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # button to create fcsv from tag file
         self.ConvertTagFCSVButton = qt.QPushButton("Load Tag File")
         self.ConvertTagFCSVButton.toolTip = "Load a .tag file and create fiducial nodes"
-        #self.layout.addWidget(self.ConvertTagFCSVButton)
-        #self.ConvertTagFCSVButton.clicked.connect(self.onConvertTagFCSVButtonClicked)
+       
         self.ui.ConvertTagFCSVButton.connect("clicked(bool)", self.onConvertTagFCSVButtonClicked)
 
 
         #Visualize the landmarks as desired (multi-slect)
         self.LandmarkSelectorComboBox = ctk.ctkCheckableComboBox()
         self.LandmarkSelectorComboBox.setToolTip("Select fiducial landmark nodes to display")
-        #self.layout.addWidget(self.LandmarkSelectorComboBox)
         
         # Populate list manually
         self.updateLandmarkSelectorComboBox()
@@ -237,7 +233,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeAddedEvent, self.onNodeChanged)
         self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.NodeRemovedEvent, self.onNodeChanged)
 
-        #self.addObserver(slicer.mrmlScene, slicer.vtkMRMLScene.EndBatchProcessEvent, self.onSceneUpdated)
 
         # Buttons
         self.ui.applyButton.connect("clicked(bool)", self.onApplyButton)
@@ -253,18 +248,13 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         normalizedValue = value/100
         slicer.util.setSliceViewerLayers(foregroundOpacity=normalizedValue)
 
+
     def onToggleUsDisplay(self) -> None:
         usVolume = self.ui.referenceVolume.currentNode()
         state = self.ui.enableUsBorderDisplay.checkState() 
     
         self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
 
-    def onToggleLandmarkDisplay(self) -> None:
-        #usVolume = self.ui.referenceVolume.currentNode()
-        state = self.ui.enableUsBorderDisplay.checkState()
-    
-        #
-        # self.logic.showNonZeroWireframe(foregroundVolume=usVolume, state=state)
 
 
     def onConvertTagFCSVButtonClicked(self):
@@ -280,13 +270,10 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             else:
                 logging.info(f"Loaded tag file: {filePath}")
     
-    #IJZF
     def onLoadExpertLabelsClicked(self):
-        print("IN onLoadExpertLabelsClicked")
 
         comboBox = self.ui.LandmarkSelectorComboBox
         model = comboBox.model()
-        #print("comboBox.count", comboBox.count)
         for i in range(comboBox.count):
             #print("i", i)
             index = model.index(i, 0)
@@ -321,108 +308,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 displayNode.SetVisibility(False)
                 displayNode.SetVisibility2D(False)
                 displayNode.SetGlyphScale(3.0)
-
-    # def onLoadExpertLabelsClicked(self):
-    #     '''
-    #     Select which landmarks to visualize from Data module
-    #     '''
-    #     print("IN onLoadExpertLabelsClicked")
-    #     selectedNames = []
-    #     comboBox = self.LandmarkSelectorComboBox  # or self.LandmarkSelectorComboBox
-    #     print("self.LandmarkSelectorComboBox.count", self.LandmarkSelectorComboBox.count)
-    #     for i in range(self.LandmarkSelectorComboBox.count):
-    #         print("I", i)
-    #         index = self.LandmarkSelectorComboBox.model().index(i, 0)
-    #         item = self.ui.LandmarkSelectorComboBox.itemFromIndex(index)
-    #         node = slicer.util.getNode(item)
-    #         print("in onLoadExpertLabels", node)
-    #         if item.checkState == qt.Qt.Checked:
-    #             item.setCheckState(qt.Qt.Unchecked)
-    #             node = slicer.util.getNode(item)
-    #             if node.IsA("vtkMRMLMarkupsFiducialNode"):
-    #                 node.GetDisplayNode().SetVisibility(False)
-    #                 node.GetDisplayNode().SetVisibility2D(False)
-    #             else:
-    #                 item.setCheckState(qt.Qt.Checked)
-    #                 if node.IsA("vtkMRMLMarkupsFiducialNode"):
-
-    #                     node.GetDisplayNode().SetVisibility(True)
-    #                     node.GetDisplayNode().SetVisibility2D(True)
-
-    #                     node.GetDisplayNode().SetGlyphScale(3.0) #Marker
-    #                     node.GetDisplayNode().SetTextScale(3.0) #Label
-
-    #                     node.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
-    #                     #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
-    #                     node.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
-    #                     #fiducialNode.GetDisplayNode().SetGlyphType(0)
-    #                     node.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
-
-    #                     node.GetDisplayNode().SetSelected(True)
-    #                     node.GetDisplayNode().SetHandlesInteractive(False)
-    #         self.check_items()
-
-    def check_items(self):
-        checkedItems = []
-
-        for i in range(self.ui.LandmarkSelectorComboBox.count()):
-            if self.item_checked(i):
-                checkedItems.append(i)
-        self.update_landmark_visualize(checkedItems)
-
-    def update_landmark_visualize(self, checkedItems):
-        print("In update")
-        # fiducialNode = slicer.util.getNode(checkedItems)
-
-        # fiducialNode.GetDisplayNode().SetVisibility(True)
-        # fiducialNode.GetDisplayNode().SetVisibility2D(True)
-
-        # fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
-        # fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
-
-        # fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
-        # #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
-        # fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
-        # #fiducialNode.GetDisplayNode().SetGlyphType(0)
-        # fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
-
-        # fiducialNode.GetDisplayNode().SetSelected(True)
-        # fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
-        
-        # fiducialNode.GetDisplayNode().SetVisibility(False)
-        # fiducialNode.GetDisplayNode().SetVisibility2D(False)
-    
-
-
-        # for i in range(comboBox.count):
-        # index = comboBox.model().index(i, 0)
-        # if comboBox.checkState(index) == qt.Qt.Checked:
-        #     selectedNames.append(comboBox.itemText(i))
-
-        #         fiducialNode = slicer.util.getNode(comboBox.itemText(i))
-
-        #         # Ensure it is a fiducial node
-        #         if fiducialNode.IsA("vtkMRMLMarkupsFiducialNode"):
-        #             #if self.ui.enableLandmarkDisplay.checkState():
-        #                 # Turn on visibility in 3D view
-        #             fiducialNode.GetDisplayNode().SetVisibility(True)
-        #             fiducialNode.GetDisplayNode().SetVisibility2D(True)
-
-        #             fiducialNode.GetDisplayNode().SetGlyphScale(3.0) #Marker
-        #             fiducialNode.GetDisplayNode().SetTextScale(3.0) #Label
-
-        #             fiducialNode.GetDisplayNode().SetActiveColor([1.0, 0.2, 0.5])   # Pink when active
-        #             #fiducialNode.GetDisplayNode().SetColor(0.0, 0.0, 0.0)           # Pink when not active
-        #             fiducialNode.GetDisplayNode().SetSelectedColor(0.0, 0.0, 0.0)   # Pink when selected
-        #             #fiducialNode.GetDisplayNode().SetGlyphType(0)
-        #             fiducialNode.GetDisplayNode().SetGlyphTypeFromString("Circle2D")  # Hide glyph icon
-
-        #             fiducialNode.GetDisplayNode().SetSelected(True)
-        #             fiducialNode.GetDisplayNode().SetHandlesInteractive(False)
-        #         else:
-        #             fiducialNode.GetDisplayNode().SetVisibility(False)
-        #             fiducialNode.GetDisplayNode().SetVisibility2D(False)
-
 
     
     def cleanup(self) -> None:
@@ -469,7 +354,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
   
     def onNodeChanged(self, caller, event) -> None:
         #newNode = callData
-        print("In onNodeAdded")
         #if isinstance(newNode, slicer.vtkMRMLMarkupsFiducialNode):
             #print(f"New fiducial node added: {newNode.GetName()}")
         self.updateLandmarkSelectorComboBox()
@@ -481,13 +365,13 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         '''
         self.ui.LandmarkSelectorComboBox.clear()
 
-        print("Landmark Selector Count", self.LandmarkSelectorComboBox.count)
+        #print("Landmark Selector Count", self.LandmarkSelectorComboBox.count)
 
-        print("Update... ")
+        #print("Update... ")
         fiducialNodes = slicer.util.getNodesByClass("vtkMRMLMarkupsFiducialNode")
         
-        print(f"fiducial Nodes", fiducialNodes)
-        print("fiducial Nodes available", len(fiducialNodes))
+        #print(f"fiducial Nodes", fiducialNodes)
+        #print("fiducial Nodes available", len(fiducialNodes))
 
         for node in fiducialNodes:
             if node == self.labelMarkupNode:  # or whatever your variable name is
@@ -516,7 +400,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             if not displayNode:
                 continue
             if node.GetName() in selectedNames:
-                #if self.ui.enableLandmarkDisplay.checkState(): #onToggleLandmarkDisplay
                 displayNode.SetUsePointColors(False)         # Use global color, not per-point
                 displayNode.SetVisibility(True)
                 displayNode.SetVisibility2D(True)
@@ -572,7 +455,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def onApplyButton(self) -> None:
         """Run processing when user clicks 'Apply' button."""
         with slicer.util.tryWithErrorDisplay(_("Failed to compute voxel-wise displacement."), waitCursor=True):
-
+            print("in onApply")
             logging.info(f"Reference Volume: {self._parameterNode.referenceVolume}")
             logging.info(f"Transform Node: {self._parameterNode.transformNode}")
             logging.info(f"Displacement Volume: {self._parameterNode.displacementMagnitudeVolume}")
@@ -581,8 +464,7 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             # Create displacement field (vector volume)
             self.logic.computeDisplacementMagnitude(
                 referenceVolume=self._parameterNode.referenceVolume,
-                transformNode=self._parameterNode.transformNode,
-                outputVolume=self._parameterNode.displacementMagnitudeVolume
+                transformNode=self._parameterNode.transformNode
             )
             slicer.util.setSliceViewerLayers(
                 # background=self._parameterNode.referenceVolume,
@@ -768,9 +650,6 @@ class BrainShiftModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 # BrainShiftModuleLogic
-#
-
-
 class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
     """Logic for computing voxel-wise displacement from transformation field"""
 
@@ -838,7 +717,6 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
             displayNode2.SetTextScale(5.0)               # Hide label text
             displayNode2.SetOpacity(1.0)
             displayNode2.SetGlyphScale(5.0)  
-            #displayNode2.SetGlyphTypeFromString("None")  # Hide glyph icon
             displayNode2.SetHandlesInteractive(False)    # Disable user interaction
         
         else:
@@ -879,23 +757,32 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
     def computeDisplacementMagnitude(self,
                                  referenceVolume: vtkMRMLScalarVolumeNode,
-                                 transformNode: vtkMRMLTransformNode,
-                                 outputVolume: vtkMRMLScalarVolumeNode) -> None:
+                                 transformNode: vtkMRMLTransformNode
+                                 ) -> None:
         """
         Run the processing algorithm.
         Can be used without GUI widget.
+
+        The displacementMagnitudeVolume doesn't get created until this point
         """
+        print("in computeDisplacementMagnitude")
+        if not referenceVolume:
+            raise ValueError("Input volume is invalid")
 
-
-        if not referenceVolume or not transformNode or not outputVolume:
-            raise ValueError("Input or output volume is invalid")
+        if not transformNode:
+            raise ValueError("output volume is invalid")
 
         import time
         import numpy as np 
         import vtk
         from vtk.util import numpy_support
         from vtk.util.numpy_support import vtk_to_numpy, numpy_to_vtk
+        
+        volumesLogic = slicer.modules.volumes.logic()
+        outputVolume = volumesLogic.CloneVolume(slicer.mrmlScene, referenceVolume, referenceVolume.GetName() + "_magnitude")
 
+        #outputVolume.CopyContent(referenceVolume)  # deep copy by default
+        #outputVolume.CreateDefaultDisplayNodes()
 
         startTime = time.time()
         logging.info("Displacement computation started")
@@ -903,16 +790,14 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         # fill this in
 
         imageData = referenceVolume.GetImageData()
-        logging.info(f"Extenent check: {imageData.GetExtent()}")
+        logging.info(f"outputVolume check: {imageData.GetExtent()}")
 
+        print("outputVolume image data: ", imageData)
         if imageData is None:
             logging.error("Reference volume has no image data")
             return
         dims = imageData.GetDimensions()
         logging.info(f"Reference volume dims: {dims}")
-
-        # ui check
-        logging.info(f"referenceVolume name: {referenceVolume.GetName()}")
 
 
         spacing = referenceVolume.GetSpacing()
@@ -949,8 +834,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         outputVolume.SetSpacing(referenceVolume.GetSpacing())
         outputVolume.SetOrigin(referenceVolume.GetOrigin())
         outputVolume.Modified()
-
-
+        
         # until here
 
         num_unique, unique_vals = self.countUniqueValues(outputVolume)
@@ -973,8 +857,13 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         if colorNode:
             displayNode.SetAndObserveColorNodeID(colorNode.GetID())
 
-        
+        #Store in UI and in parameter node 
+        self.ui.displacementMagnitudeVolume.setCurrentNode(outputVolume)
 
+        self._parameterNode().SetNodeReferenceID("displacementMagnitudeVolume", outputVolume.GetID())
+
+
+        #return outputVolume
         logging.info(f"Displacement computation completed in {time.time() - startTime:.2f} s")
 
     
@@ -1005,13 +894,13 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
             slicer.mrmlScene.RemoveNode(currentDisplayNode)
             slicer.mrmlScene.RemoveNode(currentModelNode)
 
-        print("Starting showNonZeroWireframe...")
+        #print("Starting showNonZeroWireframe...")
         # Step 1: Convert foreground image to binary mask
-        print("Step 1: Pulling volume from Slicer for node: %s", foregroundVolume.GetName())
+        #print("Step 1: Pulling volume from Slicer for node: %s", foregroundVolume.GetName())
         image_sitk = sitkUtils.PullVolumeFromSlicer(foregroundVolume)
         arr = sitk.GetArrayFromImage(image_sitk)
         nonzero_voxels = np.count_nonzero(arr)
-        print("Step 1b: Number of non-zero voxels: %d", nonzero_voxels)
+        #print("Step 1b: Number of non-zero voxels: %d", nonzero_voxels)
 
         if nonzero_voxels == 0:
             logger.warning("WARNING: No non-zero voxels found in the image. Aborting wireframe display.")
@@ -1020,12 +909,12 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         mask_arr = (arr != 0).astype(np.uint8)
         mask_sitk = sitk.GetImageFromArray(mask_arr)
         mask_sitk.CopyInformation(image_sitk)
-        print("Step 1b: Converted to binary mask.")
+        #print("Step 1b: Converted to binary mask.")
 
         # Push to Slicer as labelmap
         labelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode", "TempBinaryMask")
         sitkUtils.PushVolumeToSlicer(mask_sitk, targetNode=labelNode)
-        print("Step 1 done: Binary mask pushed to Slicer label node: %s", labelNode.GetName())
+        #print("Step 1 done: Binary mask pushed to Slicer label node: %s", labelNode.GetName())
 
         # Step 2: Extract surface using marching cubes
         imageData = labelNode.GetImageData()
@@ -1033,7 +922,7 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
             print("WARNING: Image data is None. Check label node data.")
             return
 
-        print("Step 2: Starting marching cubes...")
+        #print("Step 2: Starting marching cubes...")
         marching = vtk.vtkDiscreteMarchingCubes()
         marching.SetInputData(imageData)
         marching.SetValue(0, 1)
@@ -1044,19 +933,19 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
             return
 
         # Step 3: Extract wireframe edges from the surface mesh
-        print("Step 3: Extracting edges from surface...")
+        #print("Step 3: Extracting edges from surface...")
         edges = vtk.vtkExtractEdges()
         edges.SetInputConnection(marching.GetOutputPort())
         edges.Update()
 
         # Step 4: Create and show model node with only edges
-        print("Step 4: Preparing model node '%s'...", modelName)
+        #print("Step 4: Preparing model node '%s'...", modelName)
         newModelNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelNode", modelName)
-        print("STep 4 done: Created new model node.")
+       # print("STep 4 done: Created new model node.")
         newModelNode.SetAndObservePolyData(edges.GetOutput())
 
         # Match spatial transform
-        print("Step 5: Applying spatial transform (IJK to RAS)...")
+        #print("Step 5: Applying spatial transform (IJK to RAS)...")
         transform = vtk.vtkTransform()
         ijkToRAS = vtk.vtkMatrix4x4()
         labelNode.GetIJKToRASMatrix(ijkToRAS)
@@ -1068,11 +957,11 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
         newModelNode.SetAndObservePolyData(transformFilter.GetOutput())
 
         # Step 6: Set wireframe-only display
-        print("Step 6: Setting display properties for wireframe...")
+        #print("Step 6: Setting display properties for wireframe...")
         displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLModelDisplayNode")
         slicer.mrmlScene.AddNode(displayNode)
         newModelNode.SetAndObserveDisplayNodeID(displayNode.GetID())
-        print("Done: Created and linked display node.")
+        #print("Done: Created and linked display node.")
 
         displayNode.SetRepresentation(0)  # Wireframe
         displayNode.SetColor(0, 0, 0)     # Green
@@ -1085,6 +974,6 @@ class BrainShiftModuleLogic(ScriptedLoadableModuleLogic):
 
         # Optional: remove temp label node
         slicer.mrmlScene.RemoveNode(labelNode)
-        print("Temporary label node removed. Done!")
+        #print("Temporary label node removed. Done!")
 
         return newModelNode
